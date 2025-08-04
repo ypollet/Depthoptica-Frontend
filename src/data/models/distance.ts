@@ -24,12 +24,14 @@ export class Distance {
             return undefined
         }
         let distance : [number, number, number][] = new Array()
+        console.log("0 : " + this.landmarks[0].position.z)
         for(let i = 1; i < this.landmarks.length; i++){
             distance.push([
                 math.abs(this.landmarks[i].position.x - this.landmarks[i-1].position.x),
                 math.abs(this.landmarks[i].position.y - this.landmarks[i-1].position.y),
                 math.abs(this.landmarks[i].position.z - this.landmarks[i-1].position.z)
             ])
+            console.log(i + " : " + this.landmarks[i].position.z)
         }
         return distance
     }

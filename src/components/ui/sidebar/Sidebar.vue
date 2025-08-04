@@ -16,7 +16,7 @@ const landmarksStore = useLandmarksStore()
     <div class="flex-none space-y-4 py-4">
       <ToggleGroup type="single" :model-value="imageStore.image" @update:modelValue="$event => imageStore.image = $event.toString()">
         <ToggleGroupItem v-for="stackedImage in imageStore.images.keys()" :value="stackedImage">
-          {{ stackedImage }}
+          {{ imageStore.images.get(stackedImage)!.label }}
         </ToggleGroupItem>
     </ToggleGroup>
     </div>

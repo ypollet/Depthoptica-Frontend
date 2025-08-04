@@ -11,12 +11,10 @@ from flask import (
 from flask_cors import CORS, cross_origin
 
 from base64 import encodebytes
-import glob
-import io
 import os
-from PIL import Image
 import json
 import numpy as np
+import cv2
 
 
 cwd = os.getcwd()
@@ -81,14 +79,15 @@ def images(id):
 
     encoded_images = dict()
     for image in stack_file["stacked"]:
+        image_data = stack_file["stacked"][image]["data"]
         try:
             # file name of stacked image
             encoded_images[image] = {
-                "name": stack_file["stacked"][image]["name"],
+                "name": image_data["name"],
                 "label": image,
                 "size": {
-                    "width": stack_file["stacked"][image]["width"],
-                    "height": stack_file["stacked"][image]["height"],
+                    "width": image_data["width"],
+                    "height": image_data["height"],
                 },
             }
         except Exception as error:
@@ -112,12 +111,22 @@ def compute_landmark(id, image_id):
     with open(f"{directory}/depth.json", "r") as f:
         stack_file = json.load(f)
 
-    image_data = stack_file["stacked"][image_id]
+    image_data = stack_file["stacked"][image_id]["data"]
+    img = cv2.imread(
+        f"{directory}/{stack_file['stacked'][image_id]['layers']}",
+        cv2.IMREAD_GRAYSCALE,
+    )
+    x = round(x)
+    y = round(y)
+
+    # z = ((image_data["Zmax"] - image_data["Zmin"]) / 256 * img[x, y]) + image_data["Zmin"] # depthmap
+    z = img[x, y] * image_data["step"]  # layers
+    print(z)
 
     position = {
         "x": x * image_data["PixelRatio"][0],
         "y": y * image_data["PixelRatio"][1],
-        "z": image_data["Zmin"],
+        "z": z,
     }
 
     return jsonify(position)
