@@ -3,6 +3,11 @@ export type Coordinates = {
     y: number
 }
 
+export type Positions = {
+    depth: Position,
+    layer: Position
+}
+
 export type Position = {
     x : number,
     y : number,

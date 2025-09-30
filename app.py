@@ -15,6 +15,7 @@ import os
 import json
 import numpy as np
 import cv2
+import base64
 
 
 cwd = os.getcwd()
@@ -59,6 +60,35 @@ def image(id, image_id):
     return send_from_directory(f"{DATA_FOLDER}/{id}", image_id)
 
 
+# send depthmap
+@app.route("/<id>/<image_id>/depthmap")
+@cross_origin()
+def depthmap(id, image_id):
+    print("Depthmap")
+    directory = f"{DATA_FOLDER}/{id}"
+    if not os.path.exists(directory):
+        abort(404)
+    with open(f"{directory}/depth.json", "r") as f:
+        stack_file = json.load(f)
+    print(stack_file["stacked"][image_id]["depthmap"])
+    return send_from_directory(
+        directory,
+        stack_file["stacked"][image_id]["depthmap"],
+    )
+
+
+# send layers
+@app.route("/<id>/<image_id>/layers")
+@cross_origin()
+def layers(id, image_id):
+    directory = f"{DATA_FOLDER}/{id}"
+    if not os.path.exists(directory):
+        abort(404)
+    with open(f"{directory}/depth.json", "r") as f:
+        stack_file = json.load(f)
+    return send_from_directory(directory, stack_file["stacked"][image_id]["layers"])
+
+
 # send thumbnail
 @app.route("/<id>/<image_id>/thumbnail")
 @cross_origin()
@@ -77,24 +107,37 @@ def images(id):
         stack_file = json.load(f)
     to_jsonify = {}
 
-    encoded_images = dict()
-    for image in stack_file["stacked"]:
-        image_data = stack_file["stacked"][image]["data"]
+    encoded_images = []
+    for image_id in stack_file["stacked"]:
+        image_data = stack_file["stacked"][image_id]["data"]
+        """with open(
+            f"{directory}/{stack_file['stacked'][image_id]['depthmap']}", "rb"
+        ) as image_file:
+            depth_bytes = base64.b64encode(image_file.read())
+
+        with open(
+            f"{directory}/{stack_file['stacked'][image_id]['layers']}", "rb"
+        ) as image_file:
+            layer_bytes = base64.b64encode(image_file.read())"""
         try:
             # file name of stacked image
-            encoded_images[image] = {
-                "name": image_data["name"],
-                "label": image,
-                "size": {
-                    "width": image_data["width"],
-                    "height": image_data["height"],
-                },
-            }
+            encoded_images.append(
+                {
+                    "name": image_data["name"],
+                    "label": image_id,
+                    "size": {
+                        "width": image_data["width"],
+                        "height": image_data["height"],
+                    },
+                    "depthmap": "",  # f"data:image/png;base64,{depth_bytes.decode('ascii')}",
+                    "layers": "",  # f"data:image/png;base64,{layer_bytes.decode('ascii')}",
+                }
+            )
         except Exception as error:
             print(error)
             continue
     to_jsonify["images"] = encoded_images
-    to_jsonify["thumbnails"] = (len(stack_file["thumbnails"]) != 0,)
+    to_jsonify["thumbnails"] = len(stack_file["thumbnails"]) != 0
 
     return jsonify(to_jsonify)
 
@@ -105,6 +148,9 @@ def compute_landmark(id, image_id):
     x = float(request.args.get("x"))
     y = float(request.args.get("y"))
 
+    layer = int(request.args.get("layer"))
+    depth = int(request.args.get("depth"))
+
     directory = f"{DATA_FOLDER}/{id}"
     if not os.path.exists(directory):
         abort(404)
@@ -112,21 +158,21 @@ def compute_landmark(id, image_id):
         stack_file = json.load(f)
 
     image_data = stack_file["stacked"][image_id]["data"]
-    img = cv2.imread(
-        f"{directory}/{stack_file['stacked'][image_id]['layers']}",
-        cv2.IMREAD_GRAYSCALE,
-    )
-    x = round(x)
-    y = round(y)
-
     # z = ((image_data["Zmax"] - image_data["Zmin"]) / 256 * img[x, y]) + image_data["Zmin"] # depthmap
-    z = img[x, y] * image_data["step"]  # layers
-    print(z)
+    # z * image_data["step"] # layers
 
     position = {
-        "x": x * image_data["PixelRatio"][0],
-        "y": y * image_data["PixelRatio"][1],
-        "z": z,
+        "depth": {
+            "x": x * image_data["PixelRatio"][0],
+            "y": y * image_data["PixelRatio"][1],
+            "z": ((image_data["Zmax"] - image_data["Zmin"]) / 256 * depth)
+            + image_data["Zmin"],
+        },
+        "layer": {
+            "x": x * image_data["PixelRatio"][0],
+            "y": y * image_data["PixelRatio"][1],
+            "z": layer * image_data["step"],
+        },
     }
 
     return jsonify(position)

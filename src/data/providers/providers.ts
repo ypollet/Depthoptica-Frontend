@@ -5,5 +5,7 @@ export interface DataProvider {
         getImages: (objectPath: string) => Promise<AxiosResponse>;
         getFullImage : (objectPath:string, imageName : string) => string;
         getThumbnail : (objectPath:string, imageName : string) => string;
+        getDepthmap : (objectPath:string, imageName : string) => string;
+        getLayers : (objectPath:string, imageName : string) => string;
         computeLandmarkPosition : (objectPath:string, pose : Pose) => Promise<AxiosResponse>;
 }

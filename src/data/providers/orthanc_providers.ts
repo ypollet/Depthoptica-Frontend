@@ -1,4 +1,4 @@
-// stackoptica - 3D Viewer on calibrated images - Frontend
+// Depthoptica - 2D+ Viewer of stacked images - Frontend
 
 // Copyright (C) 2024 Yann Pollet, Royal Belgian Institute of Natural Sciences
 
@@ -42,22 +42,30 @@ export class OrthancProvider implements DataProvider {
     }
 
     async getImages(objectPath: string): Promise<AxiosResponse> {
-        const path = this.server + '/stackoptica/' + objectPath +'/images';
+        const path = this.server + '/depthoptica/' + objectPath +'/images';
         return axios.get(path)
     }
 
     getFullImage(objectPath: string, imageName : string): string {
-        const path = this.server + '/stackoptica/' + imageName + '/full-image'
+        const path = this.server + '/depthoptica/' + imageName + '/full-image'
         return path
     }
 
     getThumbnail(objectPath: string, imageName : string) {
-        const path = this.server + '/stackoptica/' + imageName + '/thumbnail'
+        const path = this.server + '/depthoptica/' + imageName + '/thumbnail'
         return path
     }
 
+    getDepthmap(objectPath: string, imageName: string) : string {
+        throw new Error("Not Impemented");
+    }
+    
+    getLayers (objectPath: string, imageName: string) : string {
+        throw new Error("Not Impemented"); 
+    }
+
     async computeLandmarkPosition(objectPath: string, pose: Pose) {
-        const path = this.server + '/stackoptica/' + pose.image.name +'/position?x=' + pose.marker.x + '&y=' + pose.marker.y;
+        const path = this.server + '/depthoptica/' + pose.image.name +'/position?x=' + pose.marker.x + '&y=' + pose.marker.y;
         return axios.get(path)
     }
 

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { LandmarkList } from "@/components/ui/landmark";
 import { DistanceComputed, DistanceList } from "@/components/ui/distance";
-import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useImagesStore, useLandmarksStore } from "@/lib/stores";
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
@@ -9,14 +8,15 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 const imageStore = useImagesStore()
 const landmarksStore = useLandmarksStore()
 
+console.log(imageStore.$state)
 </script>
 
 <template>
   <div class="flex flex-col pb-[12px] w-auto h-full">
-    <div class="flex-none space-y-4 py-4">
-      <ToggleGroup type="single" :model-value="imageStore.image" @update:modelValue="$event => imageStore.image = $event.toString()">
-        <ToggleGroupItem v-for="stackedImage in imageStore.images.keys()" :value="stackedImage">
-          {{ imageStore.images.get(stackedImage)!.label }}
+    <div class="flex-none space-y-4 py-4" v-if="imageStore.images != undefined">
+      <ToggleGroup type="single" :model-value="imageStore.index.toString()" @update:modelValue="$event => imageStore.index = Number($event)">
+        <ToggleGroupItem v-for="(stackedImage, index) in imageStore.images" :value="index.toString()">
+          {{ stackedImage.label ?? "none" }}
         </ToggleGroupItem>
     </ToggleGroup>
     </div>

@@ -4,6 +4,8 @@ export type StackImage = {
     thumbnail: string,
     label: string,
     size: Size,
+    layers: string | undefined,
+    depthmap: string | undefined,
 }
 
 export type ImageName = {
@@ -18,7 +20,7 @@ export type Size = {
 }
 
 export type ProjectData = {
-    images: Map<string, StackImage>,
+    images: Array<StackImage>,
     thumbnails: boolean,
 }
 

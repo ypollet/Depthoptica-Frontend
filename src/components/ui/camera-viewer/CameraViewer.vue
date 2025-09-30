@@ -16,6 +16,7 @@ import { repositorySettings } from "@/config/appSettings"
 
 import Label from '../label/Label.vue';
 
+console.log("CameraViewer")
 
 const imageStore = useImagesStore()
 
@@ -26,12 +27,15 @@ const { isPending, isError, data, error } = useQuery({
 
 const repository = RepositoryFactory.get(repositorySettings.type)
 
-function getImages(): Promise<ProjectData> {
+async function getImages(): Promise<Array<StackImage>> {
+  if (imageStore.images.length > 0) {
+
+    return imageStore.images as Array<StackImage>
+  }
   return repository.getImages(imageStore.objectPath).then((data) => {
     imageStore.images = data.images
-    let imageRand = data.images.keys().next().value!
-    imageStore.image = imageRand
-    return data
+    imageStore.index = 0
+    return data.images
   })
 }
 </script>

@@ -1,10 +1,12 @@
-import type { ProjectData, StackImage } from "@/data/models/stack_image";
+import type { ProjectData } from "@/data/models/stack_image";
 import type { Pose } from "@/data/models/landmark";
-import type { Position } from "@/data/models/coordinates";
+import type { Positions } from "@/data/models/coordinates";
 
 export interface Repository {
     getImages : (objectPath:string) => Promise<ProjectData>;
     getFullImage : (objectPath:string, imageName : string) => string;
     getThumbnail : (objectPath:string, imageName : string) => string;
-    computeLandmarkPosition : (objectPath:string, pose : Pose) => Promise<Position>;
+    getDepthmap : (objectPath:string, imageName : string) => string;
+    getLayers : (objectPath:string, imageName : string) => string;
+    computeLandmarkPosition : (objectPath:string, pose : Pose) => Promise<Positions>;
 }

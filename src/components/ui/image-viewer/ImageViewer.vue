@@ -10,6 +10,7 @@ import type { Ratio } from '@/data/models/stack_image'
 import { Distance } from '@/data/models/distance'
 import type Color from 'color'
 import { storeToRefs } from 'pinia'
+import { round } from 'mathjs'
 
 
 const repository = RepositoryFactory.get(repositorySettings.type)
@@ -51,6 +52,9 @@ watch(
 
 const imageContainer = useTemplateRef('imageContainer')
 const base_image = ref<HTMLImageElement>(new Image())
+const depthmap = ref<HTMLImageElement>(new Image())
+const layers = ref<HTMLImageElement>(new Image())
+
 if (imagesStore.selectedImage.thumbnail) {
   base_image.value.onload = (ev: Event) => loaded()
 } else {
@@ -65,6 +69,9 @@ base_image.value.src = imagesStore.selectedImage.thumbnail || imagesStore.select
 base_image.value.alt = (imagesStore.selectedImage.thumbnail) ? 'Thumbnail of ' + imagesStore.selectedImage.name : imagesStore.selectedImage.name
 
 const canvas = useTemplateRef('canvas')
+const layers_canvas = new OffscreenCanvas(imagesStore.selectedImage.size.width, imagesStore.selectedImage.size.height)
+const depthmap_canvas = new OffscreenCanvas(imagesStore.selectedImage.size.width, imagesStore.selectedImage.size.height)
+
 
 var full_image = new Image()
 const shiftCanvas = ref<Coordinates>({ x: 0, y: 0 })
@@ -73,6 +80,9 @@ const landmarkDragged = ref<Landmark | null>(null)
 const draggedPos = ref<Coordinates>({ x: -1, y: -1 })
 
 const degrees_to_radians = (deg: number) => (deg * Math.PI) / 180.0; // Convert degrees to radians using the formula: radians = (degrees * Math.PI) / 180
+
+let depth_ctx = depthmap_canvas.getContext("2d")!
+let layer_ctx = layers_canvas.getContext("2d")!
 
 onMounted(() => {
   const resizeObserver = new ResizeObserver(function () {
@@ -117,6 +127,14 @@ function loaded() {
 
     update()
   })
+}
+
+function drawDepth() {
+  depth_ctx.drawImage(depthmap.value, 0, 0);
+}
+
+function drawLayers() {
+  layer_ctx.drawImage(layers.value, 0, 0);
 }
 
 function drawImage() {
@@ -289,7 +307,7 @@ function drawMarker(ctx: CanvasRenderingContext2D, landmark: Landmark, radius: n
   ctx.fillStyle = landmark.getColorHEX()
   ctx.fill();
   ctx.lineWidth = radius / 2;
-  ctx.strokeStyle = (landmark.getPose().image.name == imagesStore.selectedImage!.name || imagesStore.image != "stack") ? "black" : "white";
+  ctx.strokeStyle = (landmark.getPose().image.name == imagesStore.selectedImage!.name) ? "black" : "white";
   ctx.stroke();
   ctx.closePath()
 }
@@ -382,35 +400,45 @@ function startDrag(event: MouseEvent) {
   let pos = getPos(event)
   if (event.button == 0) {
     dragging.value = true
-    
+
     let landmark = checkPointCircle(pos)
     landmarkDragged.value = landmark
     draggedPos.value = landmark?.pose.marker ?? { x: -1, y: -1 }
   }
   else if (event.button == 2) {
-    let pose = {
-      marker : pos,
-      image : imagesStore.selectedImage!
-    } as Pose
+    let pose: Pose = {
+      marker: pos,
+      image: imagesStore.selectedImage!,
+      depth: -1,
+      layer: -1
+    }
     if (!onImage(pos)) {
       // Image not clicked
       return;
     }
     let landmark = checkPointCircle(pos)
-    if(landmark){
+    if (landmark) {
       deleteLandmark(landmark)
     }
-    else{
-      switch(landmarksStore.tab){
+    else {
+      // load depth and layer if generating landmark
+      let rounded_pos = { x: Math.round(pos.x), y: Math.round(pos.y) }
+      pose = {
+        marker: pos,
+        image: imagesStore.selectedImage,
+        depth: depth_ctx.getImageData(rounded_pos.x, rounded_pos.y, 1, 1).data[0],
+        layer: layer_ctx.getImageData(rounded_pos.x, rounded_pos.y, 1, 1).data[0],
+      }
+      switch (landmarksStore.tab) {
         case "landmarks":
           generateLandmark(pose)
           break;
         case "distances":
-          if(landmarksStore.selectedDistance){
+          if (landmarksStore.selectedDistance) {
             addLandmark(pose, landmarksStore.selectedDistance)
-          }else{
+          } else {
             addDistance(pose)
-            landmarksStore.selectedDistanceIndex = landmarksStore.distances.length-1
+            landmarksStore.selectedDistanceIndex = landmarksStore.distances.length - 1
           }
           break;
       }
@@ -438,19 +466,23 @@ function mousemove(event: MouseEvent) {
 }
 
 function stopDrag(event: MouseEvent) {
-    dragging.value = false
-    if (landmarkDragged.value != null) {
-      //update pos of landmark
-      let landmark = landmarkDragged.value
-      landmark.setPose(imagesStore.selectedImage!, getPos(event))
-      repository.computeLandmarkPosition(imagesStore.objectPath, landmark.pose).then((position) => {
-        landmark.setPosition(position)
-      })
+  dragging.value = false
+  if (landmarkDragged.value != null) {
+    //update pos of landmark
+    let landmark = landmarkDragged.value
+    let pos = getPos(event)
+    let rounded_pos = { x: Math.round(pos.x), y: Math.round(pos.y) }
 
-      // reinit landmarkDrag
-      reinitDraggedLandmark()
-    }
-    update()
+    landmark.setPose(imagesStore.selectedImage!, pos, depth_ctx.getImageData(rounded_pos.x, rounded_pos.y, 1, 1).data[0],
+      layer_ctx.getImageData(rounded_pos.x, rounded_pos.y, 1, 1).data[0],)
+    repository.computeLandmarkPosition(imagesStore.objectPath, landmark.pose).then((positions) => {
+      landmark.setPosition(positions)
+    })
+
+    // reinit landmarkDrag
+    reinitDraggedLandmark()
+  }
+  update()
 }
 
 function reinitDraggedLandmark() {
@@ -463,8 +495,8 @@ function printPos(event: MouseEvent) {
   console.log("Position = ", pos.x, " : ", pos.y)
 }
 
-function checkPointCircle(pos: Coordinates) : Landmark | null {
-  let landmarkClicked : Landmark | null = null
+function checkPointCircle(pos: Coordinates): Landmark | null {
+  let landmarkClicked: Landmark | null = null
   landmarksStore.landmarks.forEach((landmark) => {
     if (!landmark.show) {
       return;
@@ -482,7 +514,7 @@ function checkPointCircle(pos: Coordinates) : Landmark | null {
   return landmarkClicked
 }
 
-function checkDragLandmark(pos: Coordinates, landmark: Landmark) : Landmark | null {
+function checkDragLandmark(pos: Coordinates, landmark: Landmark): Landmark | null {
   let pose = landmark.getPose()
   if (!pose) {
     //if undefined
@@ -509,16 +541,16 @@ function onImage(pos: Coordinates): boolean {
 }
 
 
-async function addDistance(pose : Pose) {
+async function addDistance(pose: Pose) {
   let distance = new Distance("Distance " + (landmarksStore.distances.length + 1))
   landmarksStore.distances.push(distance)
   distance.landmarks.push(await createLandmark(pose, distance.color));
 }
 
-async function createLandmark(pose: Pose, color: Color | undefined = undefined) : Promise<Landmark> {
+async function createLandmark(pose: Pose, color: Color | undefined = undefined): Promise<Landmark> {
   let id = landmarksStore.generateID()
-  let position = await repository.computeLandmarkPosition(imagesStore.objectPath, pose)
-  return new Landmark(id, id, pose, position, color)
+  let positions = await repository.computeLandmarkPosition(imagesStore.objectPath, pose)
+  return new Landmark(id, id, pose, positions, color)
 }
 
 async function addLandmark(pose: Pose, distance: Distance) {
@@ -552,6 +584,10 @@ function deleteLandmark(landmark: Landmark) {
     </canvas>
     <img ref="base_image" class="hidden" :src="imagesStore.selectedImage!.image"
       :alt="'Thumbnail of ' + imagesStore.selectedImage!.name" aspect-ratio="auto" @load="loaded">
+    <img ref="layers" class="hidden" :src="imagesStore.selectedImage!.layers" crossorigin="anonymous"
+      :alt="'layers of ' + imagesStore.selectedImage!.name" aspect-ratio="auto" @load="drawLayers">
+    <img ref="depthmap" class="hidden" :src="imagesStore.selectedImage!.depthmap" crossorigin="anonymous"
+      :alt="'depthmap of ' + imagesStore.selectedImage!.name" aspect-ratio="auto" @load="drawDepth">
   </div>
 
 </template>

@@ -2,16 +2,27 @@
 import Menu from "@/components/Menu.vue";
 import { Separator } from "@/components/ui/separator";
 import { Sidebar } from "@/components/ui/sidebar";
-import { useSettingsStore, useImagesStore } from "@/lib/stores";
+import { useSettingsStore, useImagesStore, useLandmarksStore } from "@/lib/stores";
 import { CameraViewer } from "@/components/ui/camera-viewer"
 
 const settingsStore = useSettingsStore()
+const landmarksStore = useLandmarksStore()
+
 const imageStore = useImagesStore()
 
 let urlParams = new URLSearchParams(window.location.search);
-console.log(urlParams.get('series') as string)
 
-imageStore.setPath(urlParams.get('series') as string)
+if(urlParams.has('series')){
+  let seriesId = urlParams.get('series') as string
+  if(imageStore.objectPath != seriesId){
+    landmarksStore.$reset()
+    imageStore.setPath(seriesId)
+  }
+}
+else{
+  landmarksStore.$reset()
+  imageStore.$reset()
+}
 
 </script>
 

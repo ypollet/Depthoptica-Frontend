@@ -14,15 +14,16 @@ import { X } from "lucide-vue-next";
 
 import * as math from "mathjs"
 import { Scale } from "@/lib/utils";
+import type { Position } from "@/data/models/coordinates";
 
 const STEP = 0.01
 const landmarksStore = useLandmarksStore()
 const imagesStore = useImagesStore()
 
-function computeDistance(intervals: [number, number, number][]): number {
+function computeDistance(intervals: Position[]): number {
     let dist = 0
     intervals.forEach((interval) => {
-        let squared = math.map(interval, math.square)
+        let squared = math.map(Object.values(interval), math.square)
         let sum = math.sum(squared)
         // can't be a Complex number
         dist += math.sqrt(sum) as number
@@ -32,7 +33,7 @@ function computeDistance(intervals: [number, number, number][]): number {
 }
 
 function changeScale(payload: string | number, distance: Distance) {
-    landmarksStore.adjustFactor = math.number(payload) / computeDistance(distance.distance!) * math.number(Scale[landmarksStore.scale as keyof typeof Scale])
+    landmarksStore.adjustFactor = math.number(payload) / computeDistance(distance.distance!.map(x => x.depth)) * math.number(Scale[landmarksStore.scale as keyof typeof Scale])
 }
 
 function resetScale() {
@@ -76,11 +77,11 @@ function resetScale() {
                         
                         <Label v-show="!distance.edit_distance" class="flex whitespace-nowrap w-auto"
                             @dblclick="distance.edit_distance = true">{{ math.round(((distance.distance) ?
-                                computeDistance(distance.distance) * landmarksStore.adjustFactor /
+                                computeDistance(distance.distance.map(x => x.depth)) * landmarksStore.adjustFactor /
                                 math.number(Scale[landmarksStore.scale as keyof typeof Scale]) : 0), 5) }} {{
                                 landmarksStore.scale }}</Label>
                         <Input v-show="distance.edit_distance" type="number" :min="0" :step="STEP"
-                            :model-value="(distance.distance) ? computeDistance(distance.distance) * landmarksStore.adjustFactor / math.number(Scale[landmarksStore.scale as keyof typeof Scale]) : 0"
+                            :model-value="(distance.distance) ? computeDistance(distance.distance.map(x => x.depth)) * landmarksStore.adjustFactor / math.number(Scale[landmarksStore.scale as keyof typeof Scale]) : 0"
                             class="flex h-auto w-auto px-0" @focusout="distance.edit_distance = false"
                             @keyup.enter="distance.edit_distance = false"
                             @update:model-value="changeScale($event, distance)" />

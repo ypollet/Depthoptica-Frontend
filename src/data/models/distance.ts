@@ -1,16 +1,17 @@
 import { Landmark } from "@/data/models/landmark"
 import Color from "color"
 import * as math from "mathjs"
+import type { Positions } from "./coordinates"
 
 export class Distance {
-    label : string
-    landmarks : Array<Landmark>
+    label: string
+    landmarks: Array<Landmark>
     color: Color
     edit_label: boolean
     edit_distance: boolean
-    show : boolean
-    
-    constructor(label: string, landmarks : Array<Landmark> | null = null, color: Color | null = null){
+    show: boolean
+
+    constructor(label: string, landmarks: Array<Landmark> | null = null, color: Color | null = null) {
         this.label = label
         this.landmarks = landmarks || new Array()
         this.edit_label = false
@@ -19,36 +20,41 @@ export class Distance {
         this.color = color || Color.rgb([Math.floor(Math.random() * 256), Math.floor(Math.random() * 256), Math.floor(Math.random() * 256)])
     }
 
-    get distance() : [number, number, number][] | undefined{
-        if(this.landmarks.length < 2 ){
+    get distance(): Positions[] | undefined {
+        if (this.landmarks.length < 2) {
             return undefined
         }
-        let distance : [number, number, number][] = new Array()
-        console.log("0 : " + this.landmarks[0].position.z)
-        for(let i = 1; i < this.landmarks.length; i++){
-            distance.push([
-                math.abs(this.landmarks[i].position.x - this.landmarks[i-1].position.x),
-                math.abs(this.landmarks[i].position.y - this.landmarks[i-1].position.y),
-                math.abs(this.landmarks[i].position.z - this.landmarks[i-1].position.z)
-            ])
-            console.log(i + " : " + this.landmarks[i].position.z)
+        let distance: Positions[] = new Array()
+        for (let i = 1; i < this.landmarks.length; i++) {
+            distance.push({
+                depth: {
+                    x: math.abs(this.landmarks[i].positions.depth.x - this.landmarks[i - 1].positions.depth.x),
+                    y: math.abs(this.landmarks[i].positions.depth.y - this.landmarks[i - 1].positions.depth.y),
+                    z: math.abs(this.landmarks[i].positions.depth.z - this.landmarks[i - 1].positions.depth.z)
+                },
+                layer: {
+                    x: math.abs(this.landmarks[i].positions.layer.x - this.landmarks[i - 1].positions.layer.x),
+                    y: math.abs(this.landmarks[i].positions.layer.y - this.landmarks[i - 1].positions.layer.y),
+                    z: math.abs(this.landmarks[i].positions.layer.z - this.landmarks[i - 1].positions.layer.z)
+                }
+            })
         }
         return distance
     }
 
-    in(landmark : Landmark | string) : boolean{
+    in(landmark: Landmark | string): boolean {
         return this.landmarks.some(e => e.equals(landmark))
     }
 
-    reset() : void {
+    reset(): void {
         this.landmarks = new Array<Landmark>()
     }
 
-    remove(landmark : Landmark | string){
+    remove(landmark: Landmark | string) {
         this.landmarks = this.landmarks.filter(e => !e.equals(landmark))
     }
 
-    getColorHEX() : string{
+    getColorHEX(): string {
         return this.color.hex()
     }
     setColorHEX(color: string) {
@@ -62,6 +68,6 @@ export class Distance {
     }
 
     toJSON() {
-        return { label: this.label, color: this.color.hex(), landmarks : this.landmarks.map((x) => x.toJSON())}
+        return { label: this.label, color: this.color.hex(), landmarks: this.landmarks.map((x) => x.toJSON()) }
     }
 }
