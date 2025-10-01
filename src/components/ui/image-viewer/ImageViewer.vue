@@ -28,7 +28,6 @@ const props = defineProps<{
 }>()
 
 const { selectedImage } = storeToRefs(imagesStore)
-const screenZoom = ref<number>(1)
 
 watch(
   selectedImage,
@@ -448,6 +447,7 @@ function startDrag(event: MouseEvent) {
     // reinit landmarkDrag
     //reinitDraggedLandmark()
   }
+  update()
 }
 
 function mousemove(event: MouseEvent) {
@@ -543,8 +543,9 @@ function onImage(pos: Coordinates): boolean {
 
 async function addDistance(pose: Pose) {
   let distance = new Distance("Distance " + (landmarksStore.distances.length + 1))
-  landmarksStore.distances.push(distance)
-  distance.landmarks.push(await createLandmark(pose, distance.color));
+  let index = landmarksStore.distances.push(distance) - 1
+  let landmark = await createLandmark(pose, distance.color)
+  landmarksStore.distances[index].landmarks.push(landmark);
 }
 
 async function createLandmark(pose: Pose, color: Color | undefined = undefined): Promise<Landmark> {

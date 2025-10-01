@@ -57,15 +57,17 @@ export class OrthancProvider implements DataProvider {
     }
 
     getDepthmap(objectPath: string, imageName: string) : string {
-        throw new Error("Not Impemented");
+        const path = this.server + '/depthoptica/' + imageName + '/depthmap';
+        return path
     }
     
     getLayers (objectPath: string, imageName: string) : string {
-        throw new Error("Not Impemented"); 
+        const path = this.server + '/depthoptica/' + imageName + '/layers';
+        return path 
     }
 
     async computeLandmarkPosition(objectPath: string, pose: Pose) {
-        const path = this.server + '/depthoptica/' + pose.image.name +'/position?x=' + pose.marker.x + '&y=' + pose.marker.y;
+        const path = this.server + '/depthoptica/' + pose.image.name +'/position?x=' + pose.marker.x + "&y=" + pose.marker.y + "&depth=" + pose.depth + "&layer=" + pose.layer;
         return axios.get(path)
     }
 

@@ -2,3 +2,4 @@
 .depth
 node_modules
 test.py
+/dist
