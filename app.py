@@ -4,18 +4,13 @@ from flask import (
     jsonify,
     request,
     send_from_directory,
-    send_file,
     abort,
 )
 
 from flask_cors import CORS, cross_origin
 
-from base64 import encodebytes
 import os
 import json
-import numpy as np
-import cv2
-import base64
 
 
 cwd = os.getcwd()
