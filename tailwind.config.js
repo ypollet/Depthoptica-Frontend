@@ -6,6 +6,7 @@ module.exports = {
   safelist: ["dark"],
   
   content: [
+    "./index.html",
     './pages/**/*.{ts,tsx,vue}',
     './components/**/*.{ts,tsx,vue}',
     './app/**/*.{ts,tsx,vue}',

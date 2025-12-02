@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useImagesStore, useLandmarksStore } from "@/lib/stores";
 
-import { Landmark } from "@/data/models/landmark";
+import { Landmark, type VectorPose } from "@/data/models/landmark";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -10,9 +10,9 @@ import draggable from "vuedraggable"
 
 import { ref } from "vue";
 
-import { X, RefreshCcw, Eye, EyeOff } from "lucide-vue-next";
-import type { Distance } from "@/data/models/distance";
+import { X, Eye, EyeOff } from "lucide-vue-next";
 import Separator from "../separator/Separator.vue";
+import { scaleDepth, vectorToString } from "@/data/models/coordinates";
 
 const landmarksStore = useLandmarksStore()
 const imagesStore = useImagesStore()
@@ -37,12 +37,14 @@ function removeLandmark(id: string) {
   landmarksStore.landmarks = landmarksStore.landmarks.filter((el) => !el.equals(id))
 }
 
-
+function scaleVector(pose : VectorPose){
+    return scaleDepth(pose, imagesStore.selectedImage.pixelRatio, imagesStore.selectedImage.depthMin, imagesStore.selectedImage.depthMax)
+}
 
 </script>
 
 <template>
-  <div ref="landmarksScroll" class="overflow-auto min-h-16 max-h-96 w-full border"
+  <div ref="landmarksScroll" class="overflow-auto min-h-16 h-full w-full border"
     :class="{ 'scroll-snap-type': scrollSnapType }">
     <draggable ref="landmarksElements" v-model="landmarksStore.landmarks" group="landmarks" item-key="id"
       :force-fallback="true" :animation="150" :scroll="true" :bubbleScroll="true" :handle="'.handle'"
@@ -69,8 +71,7 @@ function removeLandmark(id: string) {
                 @update:model-value="changeLabel($event, landmark)" />
             </div>
             <div class="flex items-center h-full w-auto justify-end space-x-3 pr-3">
-              <Separator orientation="vertical" class="h-full w-0.5" />
-              <Label class="whitespace-nowrap">{{ landmark.pose.image.label }}</Label>
+              <Label class="whitespace-nowrap">{{ vectorToString(scaleVector(landmark.pose)) }}</Label>
             </div>
             <div class="flex items-center justify-end">
               <Button class="w-6 h-6 p-0 mr-3" v-show="landmark.show" variant="secondary"

@@ -1,10 +1,17 @@
 import Color from "color"
-import type { Coordinates, Positions } from "@/data/models/coordinates"
-import type { ImageName, StackImage } from "@/data/models/stack_image"
+import type { Coords3D } from "@/data/models/coordinates"
+import type { ImageName } from "@/data/models/stack_image"
 
 export type Pose = {
-    marker: Coordinates
+    x: number,
+    y: number,
     image: ImageName,
+    depth: number,
+    layer: number
+}
+ export type VectorPose = {
+    x: number,
+    y: number,
     depth: number,
     layer: number
 }
@@ -15,23 +22,22 @@ export class Landmark {
     id: string
     label: string
     pose: Pose
-    positions : Positions
     color: Color
     show: boolean
     edit: boolean
 
-    constructor(id: string, label: string, pose: Pose, positions : Positions, color: Color | null = null) {
+    
+    constructor(id: string, label: string, pose: Pose, color: Color | null = null) {
         this.id = id
         this.label = label
         this.pose = pose
-        this.positions = positions
         this.edit = false
         this.color = color || Color.rgb([Math.floor(Math.random() * 256), Math.floor(Math.random() * 256), Math.floor(Math.random() * 256)])
         this.show = true
     }
 
-    equals(other : Landmark | string | null){
-        if(other == null){
+    equals(other : Landmark | string | null | undefined){
+        if(other == null || other == undefined){
             return false
         }
         if(typeof other === "string"){
@@ -41,7 +47,22 @@ export class Landmark {
     }
 
     toJSON() {
-        return { id: this.id, label: this.label, color: this.color.hex(), pose: this.pose, positions : this.positions }
+        return { id: this.id, label: this.label, color: this.color.hex(), pose: this.pose}
+    }
+    get depth(): Coords3D{
+        return {
+            x: this.pose.x,
+            y: this.pose.y,
+            z: this.pose.depth || 0
+        }
+    }
+
+    get layer(): Coords3D{
+        return {
+            x: this.pose.x,
+            y: this.pose.y,
+            z: this.pose.layer || 0
+        }
     }
 
     getId() : string {
@@ -64,30 +85,16 @@ export class Landmark {
         if (color.length < 3) {
             return
         }
-        this.color = Color.rgb(color[0], color[1], color[2])
+        this.color = Color.rgb(color[0]!, color[1]!, color[2]!)
     }
 
-    setPose(image : StackImage, pos: Coordinates, depth: number, layer: number) {
-        this.pose = {
-            marker : pos,
-            image : image,
-            depth: depth,
-            layer: layer
-        }
+    setPose(pose : Pose) {
+        this.pose = pose
     }
     
     getPose() : Pose {
         return this.pose
     }
-
-    setPosition(positions : Positions) {
-        this.positions = positions
-    }
-
-    getPosition() : Positions {
-        return this.positions
-    }
-
     
     getEdit() : boolean{
         return this.edit

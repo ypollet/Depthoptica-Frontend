@@ -26,18 +26,13 @@ export class WebProvider implements DataProvider {
         return path
     }
 
-    getDepthmap(objectPath: string, imageName : string): string {
+    async getDepthmap(objectPath: string, imageName : string): Promise<string> {
         const path = this.server + "/" + objectPath + '/' + imageName + "/depthmap"
-        return path
+        return axios.get(path).then((res) => res.data)
     }
 
-    getLayers(objectPath: string, imageName : string): string {
+    async getLayers(objectPath: string, imageName : string): Promise<string> {
         const path = this.server + "/" + objectPath + '/' + imageName + "/layers"
-        return path
-    }
-
-    async computeLandmarkPosition(objectPath: string, pose : Pose): Promise<AxiosResponse> {
-        const path = this.server + "/" + objectPath + "/" + pose.image.name + '/position?x=' + pose.marker.x + "&y=" + pose.marker.y + "&depth=" + pose.depth + "&layer=" + pose.layer;
-        return axios.get(path)
+        return axios.get(path).then((res) => res.data)
     }
 }

@@ -32,7 +32,7 @@ else{
     <Separator></Separator>
     <div class="h-full flex"
     :class="settingsStore.isLeft ? 'flex-row' : 'flex-row-reverse'">
-      <div class="rest_height overflow-auto sidebar rounded-md border p-4">
+      <div class="rest_height overflow-auto sidebar border p-4">
         <Sidebar />
       </div>
 

@@ -11,6 +11,7 @@ from flask_cors import CORS, cross_origin
 
 import os
 import json
+import base64
 
 
 cwd = os.getcwd()
@@ -59,17 +60,16 @@ def image(id, image_id):
 @app.route("/<id>/<image_id>/depthmap")
 @cross_origin()
 def depthmap(id, image_id):
-    print("Depthmap")
     directory = f"{DATA_FOLDER}/{id}"
     if not os.path.exists(directory):
         abort(404)
     with open(f"{directory}/depth.json", "r") as f:
         stack_file = json.load(f)
-    print(stack_file["stacked"][image_id]["depthmap"])
-    return send_from_directory(
-        directory,
-        stack_file["stacked"][image_id]["depthmap"],
-    )
+    with open(
+        f"{directory}/{stack_file['stacked'][image_id]['depthmap']}", "rb"
+    ) as image_file:
+        bytes = base64.b64encode(image_file.read())
+    return f"data:image/png;base64,{bytes.decode('ascii')}"
 
 
 # send layers
@@ -81,7 +81,11 @@ def layers(id, image_id):
         abort(404)
     with open(f"{directory}/depth.json", "r") as f:
         stack_file = json.load(f)
-    return send_from_directory(directory, stack_file["stacked"][image_id]["layers"])
+    with open(
+        f"{directory}/{stack_file['stacked'][image_id]['layers']}", "rb"
+    ) as image_file:
+        bytes = base64.b64encode(image_file.read())
+    return f"data:image/png;base64,{bytes.decode('ascii')}"
 
 
 # send thumbnail
@@ -105,27 +109,32 @@ def images(id):
     encoded_images = []
     for image_id in stack_file["stacked"]:
         image_data = stack_file["stacked"][image_id]["data"]
-        """with open(
-            f"{directory}/{stack_file['stacked'][image_id]['depthmap']}", "rb"
-        ) as image_file:
-            depth_bytes = base64.b64encode(image_file.read())
 
         with open(
             f"{directory}/{stack_file['stacked'][image_id]['layers']}", "rb"
         ) as image_file:
-            layer_bytes = base64.b64encode(image_file.read())"""
+            layer_bytes = base64.b64encode(image_file.read())
         try:
             # file name of stacked image
             encoded_images.append(
                 {
-                    "name": image_data["name"],
-                    "label": image_id,
+                    "name": image_id,
+                    "label": image_data["label"],
                     "size": {
                         "width": image_data["width"],
                         "height": image_data["height"],
                     },
-                    "depthmap": "",  # f"data:image/png;base64,{depth_bytes.decode('ascii')}",
-                    "layers": "",  # f"data:image/png;base64,{layer_bytes.decode('ascii')}",
+                    "has_depthmap": stack_file["stacked"][image_id]["depthmap"]
+                    != "",  # "",  # f"data:image/png;base64,{depth_bytes.decode('ascii')}",
+                    "has_layers": stack_file["stacked"][image_id]["layers"]
+                    != "",  # "",  #f"data:image/png;base64,{layer_bytes.decode('ascii')}"
+                    "layerThickness": image_data["step"],
+                    "depthMin": image_data["Zmin"],
+                    "depthMax": image_data["Zmax"],
+                    "pixelRatio": {
+                        "width": image_data["PixelRatio"][0],
+                        "height": image_data["PixelRatio"][1],
+                    },
                 }
             )
         except Exception as error:

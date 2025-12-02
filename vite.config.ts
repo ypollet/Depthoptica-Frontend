@@ -29,13 +29,13 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 import { fileURLToPath, URL } from 'node:url'
-
+import path from 'node:path'
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueJsx from '@vitejs/plugin-vue-jsx'
 
 
-import tailwind from "tailwindcss"
+import tailwindcss from 'tailwindcss'
 import autoprefixer from "autoprefixer"
 
 
@@ -43,17 +43,22 @@ import autoprefixer from "autoprefixer"
 export default defineConfig({
   css: {
     postcss: {
-      plugins: [tailwind(), autoprefixer()],
+      plugins: [tailwindcss(),autoprefixer()],
     },
   },
   plugins: [
     vue(),
     vueJsx(),
   ],
+  server: {
+    watch: {
+      usePolling: true,
+    }
+  },
   resolve: {
     alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url))
-    }
+      '@': path.resolve(__dirname, './src'),
+    },
   },
   base: "./",
   build: {
