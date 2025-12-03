@@ -124,10 +124,8 @@ def images(id):
                         "width": image_data["width"],
                         "height": image_data["height"],
                     },
-                    "has_depthmap": stack_file["stacked"][image_id]["depthmap"]
-                    != "",  # "",  # f"data:image/png;base64,{depth_bytes.decode('ascii')}",
-                    "has_layers": stack_file["stacked"][image_id]["layers"]
-                    != "",  # "",  #f"data:image/png;base64,{layer_bytes.decode('ascii')}"
+                    "has_depthmap": stack_file["stacked"][image_id]["depthmap"] != "",  # "",  # f"data:image/png;base64,{depth_bytes.decode('ascii')}",
+                    "has_layers": stack_file["stacked"][image_id]["layers"] != "",  # "",  #f"data:image/png;base64,{layer_bytes.decode('ascii')}"
                     "layerThickness": image_data["step"],
                     "depthMin": image_data["Zmin"],
                     "depthMax": image_data["Zmax"],

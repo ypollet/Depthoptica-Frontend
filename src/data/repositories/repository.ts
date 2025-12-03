@@ -1,6 +1,5 @@
 import type { ProjectData } from "@/data/models/stack_image";
-import type { Pose } from "@/data/models/landmark";
-import type { DistanceVectors } from "@/data/models/coordinates";
+import type {  } from "@/data/models/coordinates";
 
 export interface Repository {
     getImages : (objectPath:string) => Promise<ProjectData>;

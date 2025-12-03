@@ -517,6 +517,7 @@ function zoomWithWheel(event: WheelEvent) {
 }
 
 function computePose(pos: Coordinates): Pose {
+  console.log(imagesStore.getDepthData(pos, imagesStore.index))
   return {
     x: pos.x,
     y: pos.y,
@@ -524,6 +525,7 @@ function computePose(pos: Coordinates): Pose {
     depth: imagesStore.getDepthData(pos, imagesStore.index),
     layer: imagesStore.getLayerData(pos, imagesStore.index),
   }
+  
 }
 
 function startDrag(event: MouseEvent) {

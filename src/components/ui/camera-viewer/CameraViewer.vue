@@ -13,54 +13,50 @@ import { RepositoryFactory } from '@/data/repositories/repository_factory'
 import { repositorySettings } from "@/config/appSettings"
 
 import Label from '../label/Label.vue';
-const repository = RepositoryFactory.get(repositorySettings.type)
+import type { Landmark } from '@/data/models/landmark';
+import type { Distance } from '@/data/models/distance';
+import type { Profile } from '@/data/models/profile';
 
-
-
-const imageStore = useImagesStore()
-const landmarkStore = useLandmarksStore()
-
-const { isPending, isError, data, error } = useQuery({
-  queryKey: ['all_images'],
-  queryFn: () => getImages(),
-})
 async function getImages(): Promise<Array<StackImage>> {
-  if (imageStore.images.length > 0) {
+  if (imagesStore.images.length > 0) {
     try {
-      imageStore.images = imageStore.images.map((image: StackImage) => {
+      imagesStore.images = imagesStore.images.map((image: StackImage) => {
         image.depthmap = undefined
         image.layers = undefined
         const layers_canvas = new OffscreenCanvas(image.size.width, image.size.height)
         const depthmap_canvas = new OffscreenCanvas(image.size.width, image.size.height)
         let depth_ctx = depthmap_canvas.getContext("2d")!
         let layer_ctx = layers_canvas.getContext("2d")!
-        if (image.has_depthmap) {
-          repository.getDepthmap(imageStore.objectPath, image.name).then((depthmap_src) => {
-            let depthmap = new Image()
-            depthmap.src = depthmap_src
+        if(image.has_depthmap || image.has_layers){
+          if (image.has_depthmap) {
+            repository.getDepthmap(imagesStore.objectPath, image.name).then((depthmap_src) => {
+              let depthmap = new Image()
+              depthmap.src = depthmap_src
 
-            depthmap.onload = async () => {
-              depth_ctx.drawImage(depthmap, 0, 0);
-              image.depthmap = depth_ctx.getImageData(0, 0, depthmap.naturalWidth, depthmap.naturalHeight)
-            }
-          })
-          updateLandmarksDepth()
+              depthmap.onload = async () => {
+                depth_ctx.drawImage(depthmap, 0, 0);
+                image.depthmap = depth_ctx.getImageData(0, 0, depthmap.naturalWidth, depthmap.naturalHeight)
+                updateLandmarksDepth()
+              }
+            })
+          }
+          if (image.has_layers) {
+            repository.getLayers(imagesStore.objectPath, image.name).then((layers_src) => {
+              let layers = new Image()
+              layers.src = layers_src
+              layers.onload = async () => {
+                layer_ctx.drawImage(layers, 0, 0);
+                image.layers = layer_ctx.getImageData(0, 0, layers.naturalWidth, layers.naturalHeight)
+                updateLandmarksLayers()
+              }
+            })
+          }
+          
         }
-        if (image.has_layers) {
-          repository.getLayers(imageStore.objectPath, image.name).then((layers_src) => {
-            let layers = new Image()
-            layers.src = layers_src
-            layers.onload = async () => {
-              layer_ctx.drawImage(layers, 0, 0);
-              image.layers = layer_ctx.getImageData(0, 0, layers.naturalWidth, layers.naturalHeight)
-            }
-          })
-          updateLandmarksLayers()
-
-        }
+        
         return image
       })
-      return imageStore.images
+      return imagesStore.images
     }catch(error){
       console.log(error)
       throw error
@@ -68,10 +64,10 @@ async function getImages(): Promise<Array<StackImage>> {
     // reload depthmap and layer
     
   }
-  imageStore.index = 0
-  return repository.getImages(imageStore.objectPath).then(async (data) => {
+  imagesStore.index = 0
+  return repository.getImages(imagesStore.objectPath).then(async (data) => {
 
-    imageStore.images = data.images.map((image: StackImageData) => {
+    imagesStore.images = data.images.map((image: StackImageData) => {
       let stack_image = {
         name: image.name,
         image: image.image,
@@ -94,10 +90,10 @@ async function getImages(): Promise<Array<StackImage>> {
       let layer_ctx = layers_canvas.getContext("2d")!
 
       if (image.has_depthmap) {
-        repository.getDepthmap(imageStore.objectPath, image.name).then((depthmap_src) => {
+        repository.getDepthmap(imagesStore.objectPath, image.name).then((depthmap_src) => {
           let depthmap = new Image()
           depthmap.src = depthmap_src
-
+          
           depthmap.onload = async () => {
             depth_ctx.drawImage(depthmap, 0, 0);
             stack_image.depthmap = depth_ctx.getImageData(0, 0, depthmap.naturalWidth, depthmap.naturalHeight)
@@ -106,7 +102,7 @@ async function getImages(): Promise<Array<StackImage>> {
 
       }
       if (image.has_layers) {
-        repository.getLayers(imageStore.objectPath, image.name).then((layers_src) => {
+        repository.getLayers(imagesStore.objectPath, image.name).then((layers_src) => {
           let layers = new Image()
           layers.src = layers_src
           layers.onload = async () => {
@@ -121,17 +117,73 @@ async function getImages(): Promise<Array<StackImage>> {
       return stack_image
     })
 
-    return imageStore.images
+    return imagesStore.images
   })
 }
 
-function updateLandmarksDepth(){
 
+const repository = RepositoryFactory.get(repositorySettings.type)
+
+
+
+const imagesStore = useImagesStore()
+const landmarkStore = useLandmarksStore()
+
+
+
+const { isPending, isError, data, error } = useQuery({
+  queryKey: ['all_images'],
+  queryFn: () => getImages(),
+})
+
+
+function updateLandmarksDepth(){
+  landmarkStore.landmarks.forEach((landmark : Landmark) => {
+    let pos = {
+      x: landmark.pose.x,
+      y: landmark.pose.y
+    }
+    landmark.pose.depth = imagesStore.getDepthData(pos, imagesStore.index)
+  })
+  landmarkStore.distances.forEach((distance : Distance) => {
+   distance.landmarks.forEach((landmark : Landmark) => {
+    let pos = {
+      x: landmark.pose.x,
+      y: landmark.pose.y
+    }
+    landmark.pose.depth = imagesStore.getDepthData(pos, imagesStore.index)
+   })
+  })
+  landmarkStore.profiles.forEach((profile) => {
+    profile.landmarks.forEach((landmark) => {
+      let pos = {
+        x: landmark.pose.x,
+        y: landmark.pose.y
+      }
+      landmark.pose.depth = imagesStore.getDepthData(pos, imagesStore.index)
+    })
+  })
 }
 
 function updateLandmarksLayers(){
-  
+  landmarkStore.landmarks.forEach((landmark : Landmark) => {
+    let pos = {
+      x: landmark.pose.x,
+      y: landmark.pose.y
+    }
+    landmark.pose.layer = imagesStore.getLayerData(pos, imagesStore.index)
+  })
+  landmarkStore.distances.forEach((distance : Distance) => {
+   distance.landmarks.forEach((landmark : Landmark) => {
+    let pos = {
+      x: landmark.pose.x,
+      y: landmark.pose.y
+    }
+    landmark.pose.layer = imagesStore.getLayerData(pos, imagesStore.index)
+   })
+  })
 }
+
 </script>
 <template>
   <div class="w-full h-full border flex justify-center items-center">
@@ -143,7 +195,7 @@ function updateLandmarksLayers(){
     </div>
     <div v-if="data" class="w-full h-full flex flex-col items-center">
       <div class="flex grow flex-row w-full justify-start">
-        <Label class="border p-2">{{ imageStore.selectedImage!.label }}</Label>
+        <Label class="border p-2">{{ imagesStore.selectedImage!.label }}</Label>
       </div>
       <ImageViewer class="object-fit" aspect-ratio="auto" draggable="false" />
     </div>
