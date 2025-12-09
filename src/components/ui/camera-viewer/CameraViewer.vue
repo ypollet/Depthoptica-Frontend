@@ -110,8 +110,6 @@ async function getImages(): Promise<Array<StackImage>> {
             stack_image.layers = layer_ctx.getImageData(0, 0, layers.naturalWidth, layers.naturalHeight)
           }
         })
-
-
       }
 
       return stack_image
@@ -181,6 +179,15 @@ function updateLandmarksLayers(){
     }
     landmark.pose.layer = imagesStore.getLayerData(pos, imagesStore.index)
    })
+  })
+  landmarkStore.profiles.forEach((profile) => {
+    profile.landmarks.forEach((landmark : Landmark) => {
+      let pos = {
+      x: landmark.pose.x,
+      y: landmark.pose.y
+    }
+    landmark.pose.layer = imagesStore.getLayerData(pos, imagesStore.index)
+    })
   })
 }
 

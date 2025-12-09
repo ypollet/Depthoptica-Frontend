@@ -11,6 +11,7 @@ import { Distance } from '@/data/models/distance'
 import type Color from 'color'
 import { storeToRefs } from 'pinia'
 import { Profile } from '@/data/models/profile'
+import { max, min } from 'mathjs'
 
 
 const repository = RepositoryFactory.get(repositorySettings.type)
@@ -595,8 +596,15 @@ function mousemove(event: MouseEvent) {
       updateOffset(event.movementX, event.movementY)
     }
     else {
+      let pos = getPos(event)
+      if(!onImage(pos)){
+        pos = {
+          x: max(0, min(imagesStore.selectedImage.size.width, pos.x)),
+          y: max(0, min(imagesStore.selectedImage.size.height, pos.y))
+        }
+      }
       // drag marker
-      draggedPos.value = getPos(event)
+      draggedPos.value = pos
     }
 
     update()
@@ -607,7 +615,14 @@ function stopDrag(event: MouseEvent) {
   dragging.value = false
   if (landmarkDragged.value != null) {
     //update pos of landmark
-    landmarkDragged.value.setPose(computePose(getPos(event)))
+    let pos = getPos(event)
+    if(!onImage(pos)){
+      pos = {
+        x: max(0, min(imagesStore.selectedImage.size.width, pos.x)),
+        y: max(0, min(imagesStore.selectedImage.size.height, pos.y))
+      }
+    }
+    landmarkDragged.value.setPose(computePose(pos))
 
     // reinit landmarkDrag
     reinitDraggedLandmark()
