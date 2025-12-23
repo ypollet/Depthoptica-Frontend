@@ -2,8 +2,9 @@ import type { Repository } from "./repository";
 import  { type ProjectData } from "../models/stack_image";
 
 import type { DataProvider } from "../providers/providers";
-import type { DistanceVectors } from "../models/coordinates";
+import type { Coordinates, DistanceVectors } from "../models/coordinates";
 import type { Pose } from "../models/landmark";
+import { X } from "lucide-vue-next";
 
 export class DataRepository implements Repository {
     provider: DataProvider;
@@ -35,11 +36,8 @@ export class DataRepository implements Repository {
         return this.provider.getThumbnail(objectPath, imageName)
     }
 
-    async getDepthmap(objectPath: string, imageName: string): Promise<string> {
-        return this.provider.getDepthmap(objectPath, imageName)
+    async computeLandmark(objectPath: string, imageName : string, pose : Coordinates): Promise<Pose> {
+        return this.provider.computeLandmark(objectPath, imageName, pose)
     }
 
-    async getLayers(objectPath: string, imageName: string): Promise<string> {
-        return this.provider.getLayers(objectPath, imageName)
-    }
 }

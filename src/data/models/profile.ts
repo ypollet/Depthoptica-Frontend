@@ -1,6 +1,6 @@
-import { Landmark, type Pose, type VectorPose } from "@/data/models/landmark"
+import { Landmark } from "@/data/models/landmark"
 import Color from "color"
-import { distance_vector, type Coordinates, type DistanceVectors } from "./coordinates"
+import { type Coordinates } from "./coordinates"
 import { Deque } from "./structures"
 
 export class Profile {
@@ -101,8 +101,6 @@ export class Ends extends Deque<Landmark> {
         if (this.isEmpty()) {
             return
         }
-        console.log(landmark.label + " " + this.first!.label)
-        console.log(landmark.label + " " + this.second?.label)
         if (landmark.equals(this.second)) {
             this.popLast()
         }

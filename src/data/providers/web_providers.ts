@@ -3,6 +3,7 @@ import type { DataProvider } from "./providers";
 
 import axios, { type AxiosResponse } from "axios";
 import type { Pose } from "../models/landmark";
+import type { Coordinates } from "../models/coordinates";
 
 export class WebProvider implements DataProvider {
     server: string;
@@ -26,13 +27,8 @@ export class WebProvider implements DataProvider {
         return path
     }
 
-    async getDepthmap(objectPath: string, imageName : string): Promise<string> {
-        const path = this.server + "/" + objectPath + '/' + imageName + "/depthmap"
-        return axios.get(path).then((res) => res.data)
-    }
-
-    async getLayers(objectPath: string, imageName : string): Promise<string> {
-        const path = this.server + "/" + objectPath + '/' + imageName + "/layers"
-        return axios.get(path).then((res) => res.data)
+    async computeLandmark(objectPath: string, imageName : string, pose : Coordinates): Promise<Pose> {
+        const path = this.server + "/" + objectPath + '/' + imageName + "/position"
+        return axios.post(path, pose)
     }
 }

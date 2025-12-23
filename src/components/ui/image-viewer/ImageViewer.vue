@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted, nextTick, type HTMLAttributes, watch, version, useTemplateRef } from 'vue'
+import { ref, onMounted, nextTick, type HTMLAttributes, watch,  useTemplateRef } from 'vue'
 import { cn, ZOOM_MAX, ZOOM_MIN, DOT_RADIUS, SPACE_TARGET } from '@/lib/utils'
-import { type Coordinates, type Vector3D } from "@/data/models/coordinates"
-import { Landmark, type Pose, type VectorPose } from "@/data/models/landmark"
-import { useLandmarksStore, useImagesStore } from '@/lib/stores'
+import { type Coordinates } from "@/data/models/coordinates"
+import { Landmark, type Pose } from "@/data/models/landmark"
+import { useImagesStore } from '@/lib/stores'
 import { RepositoryFactory } from '@/data/repositories/repository_factory'
 import { repositorySettings } from "@/config/appSettings"
 import type { Ratio } from '@/data/models/stack_image'
@@ -16,50 +16,46 @@ import { max, min } from 'mathjs'
 
 const repository = RepositoryFactory.get(repositorySettings.type)
 
-const landmarksStore = useLandmarksStore()
 const imagesStore = useImagesStore()
 
-
-landmarksStore.$subscribe((mutation, state) => {
-  update()
-})
+const { selectedImage } = storeToRefs(imagesStore)
 
 const props = defineProps<{
   class?: HTMLAttributes['class']
 }>()
 
-const { selectedImage } = storeToRefs(imagesStore)
+watch(selectedImage, () => {
+      base_image.value.src = imagesStore.selectedImage.thumbnail || imagesStore.selectedImage.image
+      base_image.value.alt = (imagesStore.selectedImage.thumbnail) ? 'Thumbnail of ' + imagesStore.selectedImage.name : imagesStore.selectedImage.name
+      if (imagesStore.selectedImage.thumbnail) {
+        base_image.value.onload = (ev: Event) => loaded()
+      } else {
+        base_image.value.onload = (ev: Event) => {
+          if (imagesStore.selectedImage.camera.zoom <= 0) {
+            screenFit()
+          }
+          update()
+        }
+      }
+})
 
 watch(
   selectedImage,
   () => {
     update()
-    base_image.value.src = imagesStore.selectedImage.thumbnail || imagesStore.selectedImage.image
-    base_image.value.alt = (imagesStore.selectedImage.thumbnail) ? 'Thumbnail of ' + imagesStore.selectedImage.name : imagesStore.selectedImage.name
-    if (imagesStore.selectedImage.thumbnail) {
-      base_image.value.onload = (ev: Event) => loaded()
-    } else {
-      base_image.value.onload = (ev: Event) => {
-        if (imagesStore.zoom <= 0) {
-          screenFit()
-        }
-        update()
-      }
-    }
-  }
+    
+  }, { deep: true }
 )
 
 
 const imageContainer = useTemplateRef('imageContainer')
 const base_image = ref<HTMLImageElement>(new Image())
-const depthmap = ref<HTMLImageElement>(new Image())
-const layers = ref<HTMLImageElement>(new Image())
 
 if (imagesStore.selectedImage.thumbnail) {
   base_image.value.onload = (ev: Event) => loaded()
 } else {
   base_image.value.onload = (ev: Event) => {
-    if (imagesStore.zoom <= 0) {
+    if (imagesStore.selectedImage.camera.zoom <= 0) {
       screenFit()
     }
     update()
@@ -98,7 +94,7 @@ onMounted(() => {
 
 function loaded() {
   nextTick(() => {
-    if (imagesStore.zoom <= 0) {
+    if (imagesStore.selectedImage.camera.zoom <= 0) {
       screenFit()
     }
     let image_name = imagesStore.selectedImage.name
@@ -128,19 +124,22 @@ function loaded() {
 }
 
 function drawImage() {
-  if (canvas.value && base_image.value && base_image.value.complete && imagesStore.zoom > 0) {
+  if (canvas.value && base_image.value && base_image.value.complete && imagesStore.selectedImage.camera.zoom > 0) {
     let ratio = getRatio()
 
     let ctx = canvas.value.getContext("2d")!
 
-    let zoomX = imagesStore.zoom / ratio.width
-    let zoomY = imagesStore.zoom / ratio.height
+    let camera = imagesStore.selectedImage.camera
+
+
+    let zoomX = camera.zoom / ratio.width
+    let zoomY = camera.zoom / ratio.height
 
     let radius = DOT_RADIUS / zoomX
 
     ctx.scale(zoomX, zoomY)
 
-    ctx.translate(imagesStore.offset.x * ratio.width, imagesStore.offset.y * ratio.height)
+    ctx.translate(camera.offset.x * ratio.width, camera.offset.y * ratio.height)
 
     shiftCanvas.value = {
       x: Math.max(0, (canvas.value.width - base_image.value.naturalWidth * zoomX) / 2) / zoomX,
@@ -150,13 +149,13 @@ function drawImage() {
       shiftCanvas.value.x, shiftCanvas.value.y, base_image.value.naturalWidth, base_image.value.naturalHeight)
 
     // Stroke the lines
-    landmarksStore.distances.forEach((distance) => {
+    selectedImage.value.store.distances.forEach((distance) => {
       if (distance.landmarks.length == 0 || !distance.show) {
         return;
       }
       ctx.beginPath()
       let landmark = distance.landmarks[0]!
-      let marker: Coordinates = (landmark.equals(landmarkDragged.value)) ? draggedPos.value : landmark.pose
+      let marker: Coordinates = (landmark.equals(landmarkDragged.value)) ? draggedPos.value : landmark.pos
       let shiftedMarker = {
         x: marker.x * ratio.width + shiftCanvas.value.x,
         y: marker.y * ratio.height + shiftCanvas.value.y
@@ -164,7 +163,7 @@ function drawImage() {
       ctx.moveTo(shiftedMarker.x, shiftedMarker.y)
       for (let i = 1; i < distance.landmarks.length; i++) {
         landmark = distance.landmarks[i]!
-        marker = (landmark.equals(landmarkDragged.value)) ? draggedPos.value : landmark.pose
+        marker = (landmark.equals(landmarkDragged.value)) ? draggedPos.value : landmark.pos
         shiftedMarker = {
           x: marker.x * ratio.width + shiftCanvas.value.x,
           y: marker.y * ratio.height + shiftCanvas.value.y
@@ -178,13 +177,13 @@ function drawImage() {
     })
 
 
-    landmarksStore.profiles.forEach((profile) => {
+    selectedImage.value.store.profiles.forEach((profile) => {
       if (!profile.show || !profile.landmarks.isFull()) {
         return;
       }
       ctx.beginPath()
       let first = profile.landmarks.first!
-      let marker: Coordinates = (first.equals(landmarkDragged.value)) ? draggedPos.value : first.pose
+      let marker: Coordinates = (first.equals(landmarkDragged.value)) ? draggedPos.value : first.pos
       let shiftedMarker = {
         x: marker.x * ratio.width + shiftCanvas.value.x,
         y: marker.y * ratio.height + shiftCanvas.value.y
@@ -194,7 +193,7 @@ function drawImage() {
 
 
       let last = profile.landmarks.last!
-      marker = (last.equals(landmarkDragged.value)) ? draggedPos.value : last.pose
+      marker = (last.equals(landmarkDragged.value)) ? draggedPos.value : last.pos
       shiftedMarker = {
         x: marker.x * ratio.width + shiftCanvas.value.x,
         y: marker.y * ratio.height + shiftCanvas.value.y
@@ -207,7 +206,7 @@ function drawImage() {
       ctx.closePath()
     })
 
-    landmarksStore.landmarks.forEach((landmark) => {
+    selectedImage.value.store.landmarks.forEach((landmark) => {
       if (!landmark.show) {
         return
       }
@@ -228,7 +227,7 @@ function drawImage() {
     })
 
     // Stroke the points
-    landmarksStore.distances.forEach((distance) => {
+    selectedImage.value.store.distances.forEach((distance) => {
       if (!distance.show) {
         return;
       }
@@ -254,7 +253,7 @@ function drawImage() {
     });
 
 
-    landmarksStore.profiles.forEach((profile, index) => {
+    selectedImage.value.store.profiles.forEach((profile, index) => {
       if (!profile.show) {
         return;
       }
@@ -263,7 +262,7 @@ function drawImage() {
       }
       let moving = false
       let first = profile.landmarks.first!
-      let firstPos: Coordinates = first.pose
+      let firstPos: Coordinates = first.pos
       if (first.equals(landmarkDragged.value)) {
         moving = true
         firstPos = draggedPos.value
@@ -282,7 +281,7 @@ function drawImage() {
 
       if (profile.landmarks.isFull()) {
         let last = profile.landmarks.last!
-        let lastPos: Coordinates = last.pose
+        let lastPos: Coordinates = last.pos
 
 
         // stroke the last point
@@ -307,11 +306,10 @@ function drawImage() {
             y: lastPos.y - firstPos.y
           }
         if (moving) {
-          console.log("moving profile")
-          for (let i = 1; i <= landmarksStore.profiles[index]!.nbr_steps; i++) {
+          for (let i = 1; i <= selectedImage.value.store.profiles[index]!.nbr_steps; i++) {
             let marker = {
-              x: firstPos.x + vector.x * i / (landmarksStore.profiles[index]!.nbr_steps + 1),
-              y: firstPos.y + vector.y * i / (landmarksStore.profiles[index]!.nbr_steps + 1)
+              x: firstPos.x + vector.x * i / (selectedImage.value.store.profiles[index]!.nbr_steps + 1),
+              y: firstPos.y + vector.y * i / (selectedImage.value.store.profiles[index]!.nbr_steps + 1)
             }
             drawSubLandmark(ctx, marker, profile.color, radius, vector)
           }
@@ -390,8 +388,8 @@ function drawTarget(ctx: CanvasRenderingContext2D, marker: Coordinates, radius: 
 function drawMarker(ctx: CanvasRenderingContext2D, landmark: Landmark, radius: number) {
   let ratio = getRatio()
   let marker = {
-    x: landmark.getPose().x * ratio.width + shiftCanvas.value.x,
-    y: landmark.getPose().y * ratio.height + shiftCanvas.value.y
+    x: landmark.pos.x * ratio.width + shiftCanvas.value.x,
+    y: landmark.pos.y * ratio.height + shiftCanvas.value.y
   }
   ctx.beginPath()
   ctx.arc(marker.x, marker.y, radius, 0, 2 * Math.PI);
@@ -454,7 +452,7 @@ function screenFit() {
     canvas.value.width = Math.floor(imageContainer.value.clientWidth)
     canvas.value.height = Math.floor(imageContainer.value.clientHeight)
 
-    imagesStore.zoom = Math.min(imageContainer.value.clientWidth / imagesStore.selectedImage.size.width, imageContainer.value.clientHeight / imagesStore.selectedImage.size.height)
+    imagesStore.selectedImage.camera.zoom = Math.min(imageContainer.value.clientWidth / imagesStore.selectedImage.size.width, imageContainer.value.clientHeight / imagesStore.selectedImage.size.height)
   }
 }
 
@@ -474,35 +472,39 @@ function getRatio(): Ratio {
 function getPos(pos: Coordinates): Coordinates {
   let ratio = getRatio()
   const svgRect = canvas.value!.getBoundingClientRect();
-  let x = ((pos.x - svgRect.left) / imagesStore.zoom) - imagesStore.offset.x - (shiftCanvas.value.x / ratio.width)
-  let y = ((pos.y - svgRect.top) / imagesStore.zoom) - imagesStore.offset.y - (shiftCanvas.value.y / ratio.height)
+  let camera = imagesStore.selectedImage.camera
+  let x = ((pos.x - svgRect.left) / camera.zoom) - camera.offset.x - (shiftCanvas.value.x / ratio.width)
+  let y = ((pos.y - svgRect.top) / camera.zoom) - camera.offset.y - (shiftCanvas.value.y / ratio.height)
   return { x: x, y: y }
 }
 
 function updateOffset(movementX: number, movementY: number) {
+  let camera = imagesStore.selectedImage.camera
   if (canvas.value) {
-    imagesStore.offset.x = imagesStore.offset.x + movementX / imagesStore.zoom
-    imagesStore.offset.y = imagesStore.offset.y + movementY / imagesStore.zoom
+    camera.offset.x = camera.offset.x + movementX / camera.zoom
+    camera.offset.y = camera.offset.y + movementY / camera.zoom
 
     //check value
-    imagesStore.offset.x = Math.min(0, Math.max(-((imagesStore.selectedImage.size.width * imagesStore.zoom) - canvas.value.width) / imagesStore.zoom, imagesStore.offset.x))
-    imagesStore.offset.y = Math.min(0, Math.max(-((imagesStore.selectedImage.size.height * imagesStore.zoom) - canvas.value.height) / imagesStore.zoom, imagesStore.offset.y))
+    imagesStore.selectedImage.camera.offset.x = Math.min(0, Math.max(-((imagesStore.selectedImage.size.width * camera.zoom) - canvas.value.width) / camera.zoom, camera.offset.x))
+    imagesStore.selectedImage.camera.offset.y = Math.min(0, Math.max(-((imagesStore.selectedImage.size.height * camera.zoom) - canvas.value.height) / camera.zoom, camera.offset.y))
   }
 }
 
 function updateZoom(zoomDelta: number) {
+  let camera = imagesStore.selectedImage.camera
 
-  imagesStore.zoom = +(imagesStore.zoom * (1 + zoomDelta / 20)).toFixed(2)
+
+  camera.zoom = +(camera.zoom * (1 + zoomDelta / 20)).toFixed(2)
 
   //check value
-  imagesStore.zoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, imagesStore.zoom))
+  imagesStore.selectedImage.camera.zoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, camera.zoom))
 }
 
 
 function zoomWithWheel(event: WheelEvent) {
-  let oldZoom = imagesStore.zoom
+  let oldZoom =  imagesStore.selectedImage.camera.zoom
   updateZoom(Math.sign(-event.deltaY))
-  let deltaZoom = imagesStore.zoom / oldZoom
+  let deltaZoom =  imagesStore.selectedImage.camera.zoom / oldZoom
 
   //get pos mouse in canvas
   const svgRect = canvas.value!.getBoundingClientRect();
@@ -517,17 +519,17 @@ function zoomWithWheel(event: WheelEvent) {
   update()
 }
 
-function computePose(pos: Coordinates): Pose {
-  console.log(imagesStore.getDepthData(pos, imagesStore.index))
+/*
+async function computePose(pos: Coordinates): Promise<Pose> {
   return {
     x: pos.x,
     y: pos.y,
-    image: imagesStore.selectedImage,
     depth: imagesStore.getDepthData(pos, imagesStore.index),
     layer: imagesStore.getLayerData(pos, imagesStore.index),
   }
   
 }
+*/
 
 function startDrag(event: MouseEvent) {
   let pos = getPos(event)
@@ -542,7 +544,6 @@ function startDrag(event: MouseEvent) {
     let pose: Pose = {
       x: pos.x,
       y: pos.y,
-      image: imagesStore.selectedImage!,
       depth: -1,
       layer: -1
     }
@@ -557,25 +558,25 @@ function startDrag(event: MouseEvent) {
     else {
       // load depth and layer if generating landmark
 
-      pose = computePose(pos)
-      switch (landmarksStore.tab) {
+      //pose = computePose(pos)
+      switch (selectedImage.value.store.tab) {
         case "landmarks":
-          generateLandmark(pose)
+          generateLandmark(pos)
           break;
         case "distances":
-          if (landmarksStore.selectedDistance) {
-            addLandmarkToDistance(pose, landmarksStore.selectedDistance)
+          if (selectedImage.value.store.selectedDistance) {
+            addLandmarkToDistance(pose, selectedImage.value.store.selectedDistance)
           } else {
             addDistance(pose)
-            landmarksStore.selectedDistanceIndex = landmarksStore.distances.length - 1
+            selectedImage.value.store.selectedDistanceIndex = selectedImage.value.store.distances.length - 1
           }
           break;
         case "profiles":
-          if (landmarksStore.selectedProfile) {
-            addLandmarkToProfile(pose, landmarksStore.selectedProfile)
+          if (selectedImage.value.store.selectedProfile) {
+            addLandmarkToProfile(pose, selectedImage.value.store.selectedProfile)
           } else {
             addProfile(pose)
-            landmarksStore.selectedProfileIndex = landmarksStore.profiles.length - 1
+            selectedImage.value.store.selectedProfileIndex = selectedImage.value.store.profiles.length - 1
           }
           break;
       }
@@ -622,7 +623,11 @@ function stopDrag(event: MouseEvent) {
         y: max(0, min(imagesStore.selectedImage.size.height, pos.y))
       }
     }
-    landmarkDragged.value.setPose(computePose(pos))
+    let landmark = landmarkDragged.value
+    repository.computeLandmark(imagesStore.objectPath, imagesStore.selectedImage.name, pos).then((pose) => {
+      landmark.setPose(pose)
+    })
+    
 
     // reinit landmarkDrag
     reinitDraggedLandmark()
@@ -642,13 +647,13 @@ function printPos(event: MouseEvent) {
 
 function checkPointCircle(pos: Coordinates): Landmark | null {
   let landmarkClicked: Landmark | null = null
-  landmarksStore.landmarks.forEach((landmark) => {
+  selectedImage.value.store.landmarks.forEach((landmark) => {
     if (!landmark.show) {
       return;
     }
     landmarkClicked = checkDragLandmark(pos, landmark) || landmarkClicked
   })
-  landmarksStore.distances.forEach((distance) => {
+  selectedImage.value.store.distances.forEach((distance) => {
     if (!distance.show) {
       return;
     }
@@ -656,7 +661,7 @@ function checkPointCircle(pos: Coordinates): Landmark | null {
       landmarkClicked = checkDragLandmark(pos, landmark) || landmarkClicked
     })
   })
-  landmarksStore.profiles.forEach((profiles) => {
+  selectedImage.value.store.profiles.forEach((profiles) => {
     if (!profiles.show) {
       return;
     }
@@ -668,12 +673,7 @@ function checkPointCircle(pos: Coordinates): Landmark | null {
 }
 
 function checkDragLandmark(pos: Coordinates, landmark: Landmark): Landmark | null {
-  let pose = landmark.getPose()
-  if (!pose) {
-    //if undefined
-    return null;
-  }
-  if (pointInsideCircle(pos, pose, DOT_RADIUS / imagesStore.zoom)) {
+  if (pointInsideCircle(landmark.pos, pos, DOT_RADIUS /  imagesStore.selectedImage.camera.zoom)) {
     return landmark
   }
   return null;
@@ -698,10 +698,10 @@ function addLandmarkToDistance(pose: Pose, distance: Distance) {
 }
 
 function addDistance(pose: Pose) {
-  let distance = new Distance("Distance " + (landmarksStore.distances.length + 1))
-  let index = landmarksStore.distances.push(distance) - 1
+  let distance = new Distance("Distance " + (selectedImage.value.store.distances.length + 1))
+  let index = selectedImage.value.store.distances.push(distance) - 1
   let landmark = createLandmark(pose, distance.color)
-  landmarksStore.distances[index]!.landmarks.push(landmark);
+  selectedImage.value.store.distances[index]!.landmarks.push(landmark);
 }
 
 function addLandmarkToProfile(pose: Pose, profile: Profile) {
@@ -710,33 +710,38 @@ function addLandmarkToProfile(pose: Pose, profile: Profile) {
 }
 
 function addProfile(pose: Pose) {
-  let profile = new Profile("Profile " + (landmarksStore.profiles.length + 1))
-  let index = landmarksStore.profiles.push(profile) - 1
+  let profile = new Profile("Profile " + (selectedImage.value.store.profiles.length + 1))
+  let index = selectedImage.value.store.profiles.push(profile) - 1
   let landmark = createLandmark(pose, profile.color)
-  landmarksStore.profiles[index]!.landmarks.add(landmark);
+  selectedImage.value.store.profiles[index]!.landmarks.add(landmark);
 }
 
-function createLandmark(pose: Pose, color: Color | undefined = undefined): Landmark {
-  let id = landmarksStore.generateID()
-  return new Landmark(id, id, pose, color)
+function createLandmark(pos: Coordinates, color: Color | undefined = undefined): Landmark {
+  let id = selectedImage.value.store.generateID()
+  let landmark =  new Landmark(id, id, pos, null, color)
+  
+  repository.computeLandmark(imagesStore.objectPath, imagesStore.selectedImage.name, pos).then((pose) => {
+    landmark.setPose(pose)
+  })
+  return landmark
 }
 
 
 
-function generateLandmark(pose: Pose) {
-  landmarksStore.landmarks.push(createLandmark(pose))
+function generateLandmark(pos: Coordinates) {
+  selectedImage.value.store.landmarks.push(createLandmark(pos))
 }
 
 function deleteLandmark(landmark: Landmark) {
-  landmarksStore.distances.forEach((dist, index) => {
+  selectedImage.value.store.distances.forEach((dist, index) => {
     dist.landmarks = dist.landmarks.filter(x => !x.equals(landmark))
   })
 
-  landmarksStore.profiles.forEach((prof, index) => {
+  selectedImage.value.store.profiles.forEach((prof, index) => {
     prof.landmarks.remove(landmark)
   })
 
-  landmarksStore.landmarks = landmarksStore.landmarks.filter(land => !land.equals(landmark))
+  selectedImage.value.store.landmarks = selectedImage.value.store.landmarks.filter(land => !land.equals(landmark))
   update()
   // reinit landmarkDrag
   reinitDraggedLandmark()

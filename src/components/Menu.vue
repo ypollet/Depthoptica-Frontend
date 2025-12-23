@@ -37,12 +37,14 @@ import { Distance } from '@/data/models/distance'
 
 
 import { useToggle, useDark } from '@vueuse/core'
-import { useSettingsStore, useLandmarksStore, useImagesStore } from '@/lib/stores'
+import { useSettingsStore, useImagesStore } from '@/lib/stores'
 import saveAs from 'file-saver';
+import { storeToRefs } from 'pinia'
 
 const settingsStore = useSettingsStore()
-const landmarksStore = useLandmarksStore()
 const imagesStore = useImagesStore()
+const { selectedImage } = storeToRefs(imagesStore)
+
 
 const isDark = useDark({
   storageKey: 'localStorage'
@@ -56,11 +58,11 @@ function downloadCsv() {
     ["Distance", "Label", "Color", "Pose_X", "Pose_Y", "Image", "ImageLabel"]
   ];
 
-  landmarksStore.distances.forEach((distance) => {
+  selectedImage.value.store.distances.forEach((distance) => {
     distance.landmarks.forEach((landmark) => {
       landmark = landmark as Landmark
       let pose = landmark.pose
-      let row: Array<string> = [distance.label, landmark.label, landmark.getColorHEX(), pose.x.toString(), pose.y.toString(), pose.image.name, pose.image.label]
+      let row: Array<string> = [distance.label, landmark.label, landmark.getColorHEX(), pose.x.toString(), pose.y.toString(), selectedImage.value.name, selectedImage.value.label]
       rows.push(row)
     })
   })
@@ -76,11 +78,11 @@ function downloadJSON() {
 
   const data: Map<string, any> = new Map()
 
-  data.set('scale_factor', landmarksStore.adjustFactor)
+  data.set('scale_factor', selectedImage.value.store.adjustFactor)
 
   let distances = new Array<Object>()
 
-  landmarksStore.distances.forEach((distance) => {
+  selectedImage.value.store.distances.forEach((distance) => {
     let listLandmarks = new Array<Object>()
 
     distance.landmarks.forEach((landmark) => {
@@ -126,7 +128,7 @@ function importLandmarks(jsonData: string) {
 
   let jsonObject = JSON.parse(jsonData)
   let mapData: Map<string, any> = new Map(Object.entries(jsonObject));
-  landmarksStore.adjustFactor = mapData.get("scale_factor")
+  selectedImage.value.store.adjustFactor = mapData.get("scale_factor")
 
 
   let mapDistances: Array<Object> = mapData.get("landmarks")
@@ -135,11 +137,11 @@ function importLandmarks(jsonData: string) {
 
     let landmarks = distanceMap.get("landmarks").map((landmarkObject: Object) => {
       let landmarkMap = new Map(Object.entries(landmarkObject))
-      return new Landmark(landmarksStore.generateID(), landmarkMap.get("label"), landmarkMap.get("pose"), Color(landmarkMap.get("color")))
+      return new Landmark(selectedImage.value.store.generateID(), landmarkMap.get("label"), landmarkMap.get("pose"), Color(landmarkMap.get("color")))
     })
 
     let distance = new Distance(distanceMap.get("label"), landmarks, Color(distanceMap.get("color")))
-    landmarksStore.distances.push(distance)
+    selectedImage.value.store.distances.push(distance)
   })
 
 }

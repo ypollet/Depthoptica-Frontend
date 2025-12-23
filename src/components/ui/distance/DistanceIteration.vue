@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useImagesStore, useLandmarksStore } from "@/lib/stores";
+import { useImagesStore } from "@/lib/stores";
 
 import { Landmark, type Pose } from "@/data/models/landmark";
 
@@ -12,7 +12,8 @@ import { ref } from "vue";
 
 import { X, RefreshCcw, Eye, EyeOff } from "lucide-vue-next";
 import { Distance } from "@/data/models/distance";
-import { scaleDepth, vectorToString, type Coords3D } from "@/data/models/coordinates";
+import { vectorToString } from "@/data/models/coordinates";
+import { storeToRefs } from "pinia";
 
 const props = defineProps({
     distance: {
@@ -29,8 +30,9 @@ const props = defineProps({
     }
 })
 
-const landmarksStore = useLandmarksStore()
 const imagesStore = useImagesStore()
+
+const {selectedImage} = storeToRefs(imagesStore)
 
 const scrollSnapType = ref<boolean>(true)
 const landmarksElements = ref<InstanceType<typeof draggable> | null>(null)
@@ -50,7 +52,7 @@ function changeColor(event: Event) {
 function removeLandmark(id : string){
     props.distance.remove(id)
     if(props.distance.landmarks.length == 0){
-        landmarksStore.distances.splice(props.index, 1)
+        selectedImage.value.store.distances.splice(props.index, 1)
     }
 }
 
@@ -63,10 +65,10 @@ function changeLabelDistance(payload: string | number) {
 }
 
 function deleteDistance() {
-    if(props.index <= landmarksStore.selectedDistanceIndex){
-        landmarksStore.selectedDistanceIndex--;
+    if(props.index <= selectedImage.value.store.selectedDistanceIndex){
+        selectedImage.value.store.selectedDistanceIndex--;
     }
-    landmarksStore.distances.splice(props.index, 1)
+    selectedImage.value.store.distances.splice(props.index, 1)
 }
 
 function showInput(){
@@ -77,9 +79,14 @@ function showInput(){
     }
 }
 
+/*
 function scaleVector(pose : Pose){
-    return scaleDepth(pose, imagesStore.selectedImage.pixelRatio, imagesStore.selectedImage.depthMin, imagesStore.selectedImage.depthMax)
+    if(selectedImage.value.pixelRatio != null && selectedImage.value.depthMin != null && selectedImage.value.depthMax != null){
+         return scaleDepthRatio(pose, selectedImage.value.pixelRatio, selectedImage.value.depthMin, selectedImage.value.depthMax)
+    }
+    return {x : pose.x, y: pose.y, z:0}
 }
+*/
 </script>
 
 <template>
@@ -144,7 +151,7 @@ function scaleVector(pose : Pose){
                                     @update:model-value="changeLabelLandmark($event, landmark)" />
                             </div>
                             <div class="flex items-center h-full w-auto justify-end space-x-3 pr-3">
-                                <Label class="whitespace-nowrap">{{  vectorToString(scaleVector(landmark.pose)) }}</Label>
+                                <Label class="whitespace-nowrap">{{  vectorToString(landmark.depth) }}</Label>
                             </div>
                             <div class="flex items-center justify-end space-x-3">
                                 <Button class="relative w-6 h-6 p-0" variant="destructive"

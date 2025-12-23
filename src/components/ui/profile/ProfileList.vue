@@ -1,34 +1,24 @@
 <script setup lang="ts">
-import { useLandmarksStore } from "@/lib/stores";
+import { useLandmarksStore, useImagesStore } from "@/lib/stores";
 
 import { ProfileIteration } from ".";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { storeToRefs } from "pinia";
-import { Ends, Profile, type EndsObject } from "@/data/models/profile";
-import { onMounted } from "vue";
-import Color from "color";
+import { Profile } from "@/data/models/profile";
 
-const landmarksStore = useLandmarksStore()
+const imagesStore = useImagesStore()
+const { selectedImage } = storeToRefs(imagesStore)
 
-const { selectedProfileIndex } = storeToRefs(landmarksStore)
+
 
 function updateSelectedDist(payload: string) {
-    landmarksStore.selectedProfileIndex = Number(payload)
+    selectedImage.value.store.selectedProfileIndex = Number(payload)
 }
-
-landmarksStore.profiles = landmarksStore.profiles.map((profile) => {
-    if(!(profile instanceof Profile)){
-        return new Profile(profile.label, profile.landmarks as Ends, profile.nbr_steps, Color(profile.color))
-    }
-    else{
-        return profile
-    }
-})
 </script>
 
 <template>
     <div class="flex grow w-full flex-col space-y-5">
-        <Select class="flex grow w-full" :model-value="selectedProfileIndex.toString()"
+        <Select class="flex grow w-full" :model-value="selectedImage.store.selectedProfileIndex.toString()"
             @update:model-value="updateSelectedDist">
             <SelectTrigger class="w-full">
                 <SelectValue placeholder="Pick a profile" />
@@ -39,21 +29,21 @@ landmarksStore.profiles = landmarksStore.profiles.map((profile) => {
                     <SelectItem class="h-8" value="-1">
                         New..
                     </SelectItem>
-                    <SelectItem class="h-8" v-for="(profile, index) in landmarksStore.profiles"
+                    <SelectItem class="h-8" v-for="(profile, index) in selectedImage.store.profiles"
                         :value="index.toString()">
                         {{ profile.label }}
                     </SelectItem>
                 </SelectGroup>
             </SelectContent>
         </Select>
-        <ProfileIteration v-if="landmarksStore.selectedProfile != null"
-            :profile="(landmarksStore.selectedProfile as Profile)" :index="landmarksStore.selectedProfileIndex"
+        <ProfileIteration v-if="selectedImage.store.selectedProfile != null"
+            :profile="(selectedImage.store.selectedProfile as Profile)" :index="selectedImage.store.selectedProfileIndex"
             :showLandmarks="true" />
         <div
-            v-for="(map) in landmarksStore.profiles.map((profileMap, indexMap) => [profileMap, indexMap] as [Profile, number]).filter((map) => map[1] != landmarksStore.selectedProfileIndex)">
-            <ProfileIteration v-if="map[1] != landmarksStore.selectedProfileIndex" :profile="(map[0] as Profile)"
+            v-for="(map) in selectedImage.store.profiles.map((profileMap, indexMap) => [profileMap, indexMap] as [Profile, number]).filter((map) => map[1] != selectedImage.store.selectedProfileIndex)">
+            <ProfileIteration v-if="map[1] != selectedImage.store.selectedProfileIndex" :profile="(map[0] as Profile)"
                 :index="map[1]" :showLandmarks="false"
-                @dblclick="(e: MouseEvent) => { e.preventDefault(); landmarksStore.selectedProfileIndex = map[1] }" />
+                @dblclick="(e: MouseEvent) => { e.preventDefault(); selectedImage.store.selectedProfileIndex = map[1] }" />
         </div>
     </div>
 </template>

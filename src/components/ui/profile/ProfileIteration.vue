@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { useImagesStore, useLandmarksStore } from "@/lib/stores";
+import { useImagesStore } from "@/lib/stores";
 
-import { Landmark, type Pose, type VectorPose } from "@/data/models/landmark";
+import { Landmark, type Pose } from "@/data/models/landmark";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -9,7 +9,8 @@ import { Input } from '@/components/ui/input'
 
 import { X, RefreshCcw, Eye, EyeOff } from "lucide-vue-next";
 import { Profile } from "@/data/models/profile";
-import { scaleDepth, vectorToString, type Coords3D } from "@/data/models/coordinates";
+import { vectorToString } from "@/data/models/coordinates";
+import { storeToRefs } from "pinia";
 
 const props = defineProps({
     profile: {
@@ -26,8 +27,10 @@ const props = defineProps({
     }
 })
 
-const landmarksStore = useLandmarksStore()
+
 const imagesStore = useImagesStore()
+const { selectedImage } = storeToRefs(imagesStore)
+
 
 function changeColor(event: Event) {
     let target = event.currentTarget as HTMLButtonElement;
@@ -42,14 +45,14 @@ function changeColor(event: Event) {
 function removeFirst(id: string) {
     props.profile.popFirst()
     if (props.profile.landmarks.length == 0) {
-        landmarksStore.profiles.splice(props.index, 1)
+        selectedImage.value.store.profiles.splice(props.index, 1)
     }
 }
 
 function removeLast(id: string) {
     props.profile.popLast()
     if (props.profile.landmarks.length == 0) {
-        landmarksStore.profiles.splice(props.index, 1)
+        selectedImage.value.store.profiles.splice(props.index, 1)
     }
 }
 
@@ -62,19 +65,24 @@ function changeLabelProfile(payload: string | number) {
 }
 
 function deleteProfile() {
-    if (props.index <= landmarksStore.selectedProfileIndex) {
-        landmarksStore.selectedProfileIndex--;
+    if (props.index <= selectedImage.value.store.selectedProfileIndex) {
+        selectedImage.value.store.selectedProfileIndex--;
     }
-    landmarksStore.profiles.splice(props.index, 1)
+    selectedImage.value.store.profiles.splice(props.index, 1)
 }
 
 function showInput() {
     props.profile.edit_label = true
 }
 
-function scaleVector(pose : VectorPose){
-    return scaleDepth(pose, imagesStore.selectedImage.pixelRatio, imagesStore.selectedImage.depthMin, imagesStore.selectedImage.depthMax)
+/*
+function scaleVector(pose : Pose){
+    if(selectedImage.value.pixelRatio != null && selectedImage.value.depthMin != null && selectedImage.value.depthMax != null){
+         return scaleDepthRatio(pose, selectedImage.value.pixelRatio, selectedImage.value.depthMin, selectedImage.value.depthMax)
+    }
+    return {x : pose.x, y: pose.y, z:0}
 }
+*/
 
 </script>
 
@@ -128,7 +136,7 @@ function scaleVector(pose : VectorPose){
                             @update:model-value="changeLabelLandmark($event, profile.landmarks.first!)" />
                     </div>
                     <div class="flex items-center h-full w-auto justify-end space-x-3 pr-3">
-                        <Label class="whitespace-nowrap">{{ vectorToString(scaleVector(profile.landmarks.first!.pose)) }}</Label>
+                        <Label class="whitespace-nowrap">{{ vectorToString(profile.landmarks.first!.depth) }}</Label>
                     </div>
                     <div class="flex items-center justify-end space-x-3">
                         <Button class="relative w-6 h-6 p-0" variant="destructive"
@@ -151,7 +159,7 @@ function scaleVector(pose : VectorPose){
                             @update:model-value="changeLabelLandmark($event, profile.landmarks.last!)" />
                     </div>
                     <div class="flex items-center h-full w-auto justify-end space-x-3 pr-3">
-                        <Label class="whitespace-nowrap">{{ vectorToString(scaleVector(profile.landmarks.last!.pose)) }}</Label>
+                        <Label class="whitespace-nowrap">{{ vectorToString(profile.landmarks.last!.depth) }}</Label>
                     </div>
                     <div class="flex items-center justify-end space-x-3">
                         <Button class="relative w-6 h-6 p-0" variant="destructive"

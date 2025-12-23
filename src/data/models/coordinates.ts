@@ -1,6 +1,6 @@
 import * as math from "mathjs"
-import type { Landmark, Pose, VectorPose } from "./landmark"
-import type { Ratio } from "./stack_image"
+import type { Pose } from "./landmark"
+import type { Intrinsics, Ratio } from "./stack_image"
 
 export type Coordinates = {
     x: number,
@@ -26,7 +26,7 @@ export function vectorToString(vector: Vector3D) {
     return `(${vector.x.toFixed(2)}; ${vector.y.toFixed(2)}; ${vector.z.toFixed(2)})`
 }
 
-export function distance_vector(first: VectorPose, second: VectorPose) : VectorPose{
+export function distance_vector(first: Pose, second: Pose) : Pose{
     return {
         x: math.abs(second.x - first.x),
         y: math.abs(second.y - first.y),
@@ -35,7 +35,17 @@ export function distance_vector(first: VectorPose, second: VectorPose) : VectorP
     }
 }
 
-export function scaleDepth(pose: VectorPose, pixelRatio: Ratio, depthMin: number, depthMax: number) {
+/*
+export function scaleDepthInt(pose: Pose, intrinsics: Intrinsics, depthMin: number, depthMax: number) {
+    let z = ((depthMax - depthMin) / 256 * pose.depth) + depthMin
+    return {
+        x: (pose.x - intrinsics.cx) / intrinsics.fx * pose.depth,
+        y: (pose.y - intrinsics.cy) / intrinsics.fy * pose.depth,
+        z: z,
+    }
+}
+
+export function scaleDepthRatio(pose: Pose, pixelRatio: Ratio, depthMin: number, depthMax: number) {
     return {
         x: pose.x * pixelRatio.width,
         y: pose.y * pixelRatio.height,
@@ -50,4 +60,4 @@ export function scaleLayer(pose: Pose, pixelRatio: Ratio, step: number) {
         z: pose.layer * step,
     }
 }
-
+*/

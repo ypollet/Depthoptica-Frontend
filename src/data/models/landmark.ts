@@ -1,35 +1,28 @@
 import Color from "color"
-import type { Coords3D } from "@/data/models/coordinates"
+import type { Coordinates, Coords3D } from "@/data/models/coordinates"
 import type { ImageName } from "@/data/models/stack_image"
 
 export type Pose = {
     x: number,
     y: number,
-    image: ImageName,
     depth: number,
     layer: number
 }
- export type VectorPose = {
-    x: number,
-    y: number,
-    depth: number,
-    layer: number
-}
-
-
 
 export class Landmark {
     id: string
     label: string
-    pose: Pose
+    pos: Coordinates
+    pose: Pose | null
     color: Color
     show: boolean
     edit: boolean
 
     
-    constructor(id: string, label: string, pose: Pose, color: Color | null = null) {
+    constructor(id: string, label: string, pos : Coordinates, pose: Pose | null, color: Color | null = null) {
         this.id = id
         this.label = label
+        this.pos = pos
         this.pose = pose
         this.edit = false
         this.color = color || Color.rgb([Math.floor(Math.random() * 256), Math.floor(Math.random() * 256), Math.floor(Math.random() * 256)])
@@ -51,17 +44,17 @@ export class Landmark {
     }
     get depth(): Coords3D{
         return {
-            x: this.pose.x,
-            y: this.pose.y,
-            z: this.pose.depth || 0
+            x: this.pose?.x || 0,
+            y: this.pose?.y || 0,
+            z: this.pose?.depth || 0
         }
     }
 
     get layer(): Coords3D{
         return {
-            x: this.pose.x,
-            y: this.pose.y,
-            z: this.pose.layer || 0
+            x: this.pose?.x || 0,
+            y: this.pose?.y || 0,
+            z: this.pose?.layer || 0
         }
     }
 
@@ -92,7 +85,7 @@ export class Landmark {
         this.pose = pose
     }
     
-    getPose() : Pose {
+    getPose() : Pose | null{
         return this.pose
     }
     

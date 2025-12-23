@@ -1,3 +1,99 @@
+import type { ProfileObject } from "@/lib/stores"
+import { Distance } from "./distance"
+import { Landmark } from "./landmark"
+import { Ends, Profile } from "./profile"
+import Color from "color"
+import type { Coordinates } from "./coordinates"
+
+export class Store {
+    landmarks: Array<Landmark>
+    distances: Array<Distance>
+    profiles: Array<Profile>
+    adjustFactor: number
+    scale: string
+    tab: string
+    selectedDistanceIndex: number
+    selectedProfileIndex: number
+
+    constructor(landmarks : Array<Landmark> | null = null, distances : Array<Distance> | null = null, profiles : Array<Profile> | null = null, adjustFactor = 1, scale="mm", tab="landmarks", selectedDistanceIndex = -1, selectedProfileIndex = -1){
+        this.landmarks = landmarks || Array<Landmark>()
+        this.distances = distances || Array<Distance>()
+        this.profiles = profiles || Array<Profile>()
+        this.adjustFactor = adjustFactor
+        this.scale = scale
+        this.tab = tab
+        this.selectedDistanceIndex = selectedDistanceIndex 
+        this.selectedProfileIndex = selectedProfileIndex
+    }
+
+    get selectedDistance() : Distance | null{
+        return  (this.selectedDistanceIndex >= 0 && this.selectedDistanceIndex < this.distances.length) ? this.distances[this.selectedDistanceIndex] as Distance : null
+    }
+     get selectedProfile() : Profile | null{
+        return  (this.selectedProfileIndex >= 0 && this.selectedProfileIndex < this.profiles.length) ? this.profiles[this.selectedProfileIndex] as Profile : null
+    }
+
+    generateID() {
+      let check: boolean = false
+      let id: string = ""
+      while (!check) {
+        id = (Math.random() + 1).toString(36).substring(2);
+        this.distances.forEach(distance => {
+          if (distance.landmarks.filter(e => e.equals(id)).length == 0) {
+            check = true
+          }
+        })
+        if (this.landmarks.filter(e => e.equals(id)).length == 0) {
+          check = true
+        }
+        this.profiles.forEach(profile => {
+          profile.landmarks.forEach(e => {
+            if(e.equals(id)){
+              check = true
+            }
+          })
+        })
+      }
+      return id;
+    }
+
+    toJSON() {
+        return {
+            landmarks: this.landmarks.map((landmark) => landmark.toJSON()),
+            distances: this.distances.map((distance) => distance.toJSON()),
+            profiles: this.profiles.map((profile) => profile.toJSON()),
+            adjustFactor: this.adjustFactor,
+            scale: this.scale,
+            tab: this.tab,
+            selectedDistanceIndex: this.selectedDistanceIndex,
+            selectedProfileIndex: this.selectedProfileIndex,
+        }
+    }
+}
+
+export type StoreData = {
+    landmarks: Array<Landmark>
+    distances: Array<Distance>
+    profiles: Array<ProfileObject>
+    adjustFactor: number
+    scale: string
+    tab: string
+    selectedDistanceIndex: number
+    selectedProfileIndex: number
+}
+
+export type Camera = {
+    zoom : number,
+    offset :Coordinates,
+}
+
+export type Intrinsics = {
+    fx : number,
+    fy : number,
+    cx : number,
+    cy : number
+}
+
 export type StackImageData = {
     name: string,
     image: string,
@@ -9,7 +105,9 @@ export type StackImageData = {
     depthMin: number,
     depthMax: number,
     layerThickness: number,
-    pixelRatio: Ratio
+    pixelRatio: Ratio,
+    camera : Camera,
+    store : StoreData,
 }
 export class StackImage {
     name: string
@@ -17,30 +115,40 @@ export class StackImage {
     thumbnail: string
     label: string
     size: Size
-    has_layers: boolean
-    has_depthmap: boolean
-    layers: ImageData | undefined
-    depthmap: ImageData | undefined
-    depthMin: number
-    depthMax: number
-    layerThickness: number
-    pixelRatio: Ratio
+    camera : Camera
+    store: Store
 
     static fromData(data : StackImageData){
+
+        let landmarks = new Array<Landmark>()
+        data.store.landmarks.forEach((jsonObject: Landmark) => {
+            let landmark = new Landmark(jsonObject.id, jsonObject.label, jsonObject.pose, Color(jsonObject.color))
+            landmarks.push(landmark)
+        })
+
+        let distances = new Array<Distance>()
+        data.store.distances.forEach((jsonObject: Distance) => {
+            let landmarks = jsonObject.landmarks.map((x: Landmark) => new Landmark(x.id, x.label, x.pose, Color(x.color)))
+            let distance = new Distance(jsonObject.label, landmarks, Color(jsonObject.color))
+            distances.push(distance)
+        })
+
+        let profiles = new Array<Profile>()
+        data.store.profiles.forEach((jsonObject : ProfileObject) => {
+            let profile = new Profile(jsonObject.label, Ends.fromJSON(jsonObject.landmarks), jsonObject.nbr_steps, Color(jsonObject.color))
+            profiles.push(profile)
+        })
+
+
+
         return new StackImage(
             data.name,
             data.image,
             data.thumbnail,
             data.label,
             data.size,
-            data.has_layers,
-            data.has_depthmap,
-            undefined,
-            undefined,
-            data.depthMin,
-            data.depthMax,
-            data.layerThickness,
-            data.pixelRatio
+            data.camera,
+            new Store(landmarks, distances, profiles, data.store.adjustFactor, data.store.scale, data.store.tab, data.store.selectedDistanceIndex, data.store.selectedProfileIndex)
         )
     }
 
@@ -49,27 +157,16 @@ export class StackImage {
         thumbnail: string,
         label: string,
         size: Size,
-        has_layers: boolean,
-        has_depthmap: boolean,
-        layers: ImageData | undefined,
-        depthmap: ImageData | undefined,
-        depthMin: number,
-        depthMax: number,
-        layerThickness: number,
-        pixelRatio: Ratio) {
+        camera : Camera | undefined = undefined,
+        store: Store | undefined = undefined
+        ) {
         this.name = name
         this.image = image
         this.thumbnail = thumbnail
         this.label = label
         this.size = size
-        this.has_layers = has_layers
-        this.has_depthmap = has_depthmap
-        this.layers = layers
-        this.depthmap = depthmap
-        this.depthMin = depthMin
-        this.depthMax = depthMax
-        this.layerThickness = layerThickness
-        this.pixelRatio = pixelRatio
+        this.camera = camera || { zoom : -1, offset:{x:0, y:0} }
+        this.store = store || new Store()
     }
 
     toJSON() {
@@ -79,14 +176,8 @@ export class StackImage {
             thumbnail: this.thumbnail,
             label: this.label,
             size: this.size,
-            has_layers: this.has_layers,
-            has_depthmap: this.has_depthmap,
-            layers: undefined,
-            depthmap: undefined,
-            depthMin: this.depthMin,
-            depthMax: this.depthMax,
-            layerThickness: this.layerThickness,
-            pixelRatio: this.pixelRatio
+            camera: this.camera,
+            store: this.store.toJSON()
         }
     }
 }

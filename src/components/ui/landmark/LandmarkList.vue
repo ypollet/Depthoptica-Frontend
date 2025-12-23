@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { useImagesStore, useLandmarksStore } from "@/lib/stores";
+import { useImagesStore } from "@/lib/stores";
 
-import { Landmark, type VectorPose } from "@/data/models/landmark";
+import { Landmark, type Pose } from "@/data/models/landmark";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -11,15 +11,14 @@ import draggable from "vuedraggable"
 import { ref } from "vue";
 
 import { X, Eye, EyeOff } from "lucide-vue-next";
-import Separator from "../separator/Separator.vue";
-import { scaleDepth, vectorToString } from "@/data/models/coordinates";
+import { vectorToString } from "@/data/models/coordinates";
+import { storeToRefs } from "pinia";
 
-const landmarksStore = useLandmarksStore()
 const imagesStore = useImagesStore()
+const { selectedImage } = storeToRefs(imagesStore)
+
 
 const scrollSnapType = ref<boolean>(true)
-const landmarksElements = ref<InstanceType<typeof draggable> | null>(null)
-const landmarksScroll = ref<HTMLElement | null>(null)
 
 
 function changeColor(event: Event, landmark: Landmark) {
@@ -34,19 +33,23 @@ function changeLabel(payload: string | number, landmark: Landmark) {
 }
 
 function removeLandmark(id: string) {
-  landmarksStore.landmarks = landmarksStore.landmarks.filter((el) => !el.equals(id))
+  selectedImage.value.store.landmarks = selectedImage.value.store.landmarks.filter((el) => !el.equals(id))
 }
 
-function scaleVector(pose : VectorPose){
-    return scaleDepth(pose, imagesStore.selectedImage.pixelRatio, imagesStore.selectedImage.depthMin, imagesStore.selectedImage.depthMax)
+/*
+function scaleVector(pose : Pose){
+    if(selectedImage.value.pixelRatio != null && selectedImage.value.depthMin != null && selectedImage.value.depthMax != null){
+         return scaleDepthRatio(pose, selectedImage.value.pixelRatio, selectedImage.value.depthMin, selectedImage.value.depthMax)
+    }
+    return {x : pose.x, y: pose.y, z:0}
 }
-
+*/
 </script>
 
 <template>
   <div ref="landmarksScroll" class="overflow-auto min-h-16 h-full w-full border"
     :class="{ 'scroll-snap-type': scrollSnapType }">
-    <draggable ref="landmarksElements" v-model="landmarksStore.landmarks" group="landmarks" item-key="id"
+    <draggable ref="landmarksElements" v-model="selectedImage.store.landmarks" group="landmarks" item-key="id"
       :force-fallback="true" :animation="150" :scroll="true" :bubbleScroll="true" :handle="'.handle'"
       class="relative w-fit min-w-full" @start="scrollSnapType = false" @end="scrollSnapType = true">
       <template #item="{ element: landmark }: { element: Landmark }">
@@ -71,7 +74,7 @@ function scaleVector(pose : VectorPose){
                 @update:model-value="changeLabel($event, landmark)" />
             </div>
             <div class="flex items-center h-full w-auto justify-end space-x-3 pr-3">
-              <Label class="whitespace-nowrap">{{ vectorToString(scaleVector(landmark.pose)) }}</Label>
+              <Label class="whitespace-nowrap">{{ vectorToString(landmark.depth) }}</Label>
             </div>
             <div class="flex items-center justify-end">
               <Button class="w-6 h-6 p-0 mr-3" v-show="landmark.show" variant="secondary"

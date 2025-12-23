@@ -1,8 +1,8 @@
-import { acceptHMRUpdate, defineStore, type PiniaPluginContext, type StateTree } from 'pinia'
+import { defineStore, type StateTree } from 'pinia'
 import { Distance } from '@/data/models/distance'
-import { Landmark, type VectorPose } from '@/data/models/landmark'
+import { Landmark } from '@/data/models/landmark'
 import Color from 'color'
-import { StackImage, type StackImageData } from '@/data/models/stack_image'
+import { StackImage, Store, type StackImageData } from '@/data/models/stack_image'
 import { RepositoryFactory } from '@/data/repositories/repository_factory'
 import { repositorySettings } from '@/config/appSettings'
 import { Ends, Profile, type EndsObject } from '@/data/models/profile'
@@ -17,18 +17,10 @@ export const DEFAULT_TAB = "viewer"
 
 const DEFAULT_IMG: StackImage = new StackImage(
   "RBINS Logo",
-  "RBINS",
-  "",
   "https://www.naturalsciences.be/bundles/8c62adb1e0fbef009ef7c06c69a991890012e203/img/logos/logo.svg",
+  "",
+  "RBINS",
   { height: DEF_SIZE, width: DEF_SIZE },
-  false,
-  false,
-  undefined,
-  undefined,
-  1,
-  0,
-  1,
-  { width: 1, height: 1 }
 )
 
 export const useSettingsStore = defineStore('settings', {
@@ -50,42 +42,16 @@ export const useImagesStore = defineStore('images', {
   state: () => ({
     objectPath: "",
     index: 0,
-    images: new Array<StackImage>(),
-    zoom: -1,
-    offset: { x: 0, y: 0 }
+    images: new Array<StackImage>()
   }),
   getters: {
-    selectedImage: (state) => (state.index >= 0 && state.index < state.images.length) ? state.images[state.index]! : DEFAULT_IMG
+    selectedImage: (state) => (state.index >= 0 && state.index < state.images.length) ? state.images[state.index]! as StackImage : DEFAULT_IMG
   },
   actions: {
     setPath(path: string) {
       this.$reset()
       this.objectPath = path
     },
-    getDepthData(pos: Coordinates, index: number) {
-      let image = (index >= 0 && index < this.images.length) ? this.images[index]! : DEFAULT_IMG
-      // images on canvas are always RGBA
-      if (image.depthmap == undefined) {
-        return 0
-      }
-      let rounded_pos = {
-        x: round(pos.x),
-        y: round(pos.y)
-      }
-      return image.depthmap.data[rounded_pos.y * image.depthmap.width * 4 + (rounded_pos.x * 4)]!
-    },
-    getLayerData(pos: Coordinates, index: number) {
-      let image = (index >= 0 && index < this.images.length) ? this.images[index]! : DEFAULT_IMG
-      // images on canvas are always RGBA
-      if (image.layers == undefined) {
-        return 0
-      }
-      let rounded_pos = {
-        x: round(pos.x),
-        y: round(pos.y)
-      }
-      return image.layers.data[rounded_pos.y * image.layers.width * 4 + (rounded_pos.x * 4)]!
-    }
   },
 
   persist: {
@@ -93,16 +59,43 @@ export const useImagesStore = defineStore('images', {
     key: 'images',
     debug: true,
     afterHydrate: (ctx) =>{
-      let images = new Array<StackImage>()
-      ctx.store.$state.images.forEach((jsonObject: StackImageData) => {
-        let image = StackImage.fromData(jsonObject)
-        images.push(image)
-      })
-      ctx.store.$state.images = images
+      
+    },
+    serializer:{
+      serialize: (data : StateTree) => {
+        // Build a plain, serializable object with only the fields we need
+        try {
+
+          const images = (data.images ?? []).map((image: any) => (image instanceof StackImage) ? image.toJSON() : image)
+          const out: any = {
+            objectPath: (data as any).objectPath,
+            index: (data as any).index,
+            images,
+            zoom: (data as any).zoom,
+            offset: (data as any).offset,
+          }
+          return JSON.stringify(out)
+        } catch (e) {
+          console.error('serialize error', e)
+          // Fallback: return minimal safe state
+          return JSON.stringify({ images: [] })
+        }
+      },
+      deserialize: (data) => {
+        let state : StateTree = destr(data)
+        let images = new Array<StackImage>()
+        state.images.forEach((jsonObject: StackImageData) => {
+          let image = StackImage.fromData(jsonObject)
+          images.push(image)
+        })
+        state.images = images
+        return state
+      }
     }
   }
 })
 
+/*
 export const useLandmarksStore = defineStore('landmarks', {
   state: () => (
     {
@@ -137,6 +130,13 @@ export const useLandmarksStore = defineStore('landmarks', {
         if (this.landmarks.filter(e => e.equals(id)).length == 0) {
           check = true
         }
+        this.profiles.forEach(profile => {
+          profile.landmarks.forEach(e => {
+            if(e.equals(id)){
+              check = true
+            }
+          })
+        })
       }
       return id;
     },
@@ -173,6 +173,8 @@ export const useLandmarksStore = defineStore('landmarks', {
   }
 })
 
+*/
+
 export type LandmarkInfo = {
   landmarks: Array<Landmark>,
   distances: Array<Distance>,
@@ -184,19 +186,6 @@ export type LandmarkInfo = {
   selectedDistanceIndex: number,
   selectedProfileIndex: number
 }
-/*
-{
-  landmarks: Array<Landmark>(),
-  distances: Array<Distance>(),
-  profiles: Array<Profile>(),
-  profile_steps: Array<number>(),
-  adjustFactor: 1,
-  scale: "mm",
-  tab: "landmarks",
-  selectedDistanceIndex: -1,
-  selectedProfileIndex: -1
-}
-  */
 
 export type ProfileObject = {
   label: string
