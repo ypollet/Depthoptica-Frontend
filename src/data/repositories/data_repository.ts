@@ -2,9 +2,8 @@ import type { Repository } from "./repository";
 import  { type ProjectData } from "../models/stack_image";
 
 import type { DataProvider } from "../providers/providers";
-import type { Coordinates, DistanceVectors } from "../models/coordinates";
-import type { Pose } from "../models/landmark";
-import { X } from "lucide-vue-next";
+import type { Coordinates, Coords3D } from "../models/coordinates";
+import type { Profile, ProfileLandmarks } from "../models/profile";
 
 export class DataRepository implements Repository {
     provider: DataProvider;
@@ -16,7 +15,7 @@ export class DataRepository implements Repository {
     async getImages(objectPath: string): Promise<ProjectData> {
         return this.provider.getImages(objectPath).then((res) => {
             let data = res.data as ProjectData
-            
+            console.log(data)
             data.images.forEach((image) => {
                 image.image = this.getFullImage(objectPath, image.name)
                 if(data.thumbnails){
@@ -36,8 +35,20 @@ export class DataRepository implements Repository {
         return this.provider.getThumbnail(objectPath, imageName)
     }
 
-    async computeLandmark(objectPath: string, imageName : string, pose : Coordinates): Promise<Pose> {
-        return this.provider.computeLandmark(objectPath, imageName, pose)
+    async computeLandmark(objectPath: string, imageName : string, pose : Coordinates): Promise<Coords3D> {
+        return this.provider.computeLandmark(objectPath, imageName, pose).then((res) => {
+            return res.data as Coords3D
+        })
+    }
+
+    async computeProfile(objectPath: string, imageName : string, profile : Profile): Promise<ProfileLandmarks | undefined
+    > {
+        if(!profile.landmarks.isFull()){
+            return undefined
+        }
+        return this.provider.computeProfile(objectPath, imageName, profile.landmarks.first!.pos, profile.landmarks.last!.pos, profile.nbr_steps).then((res) => {
+            return res.data as ProfileLandmarks
+        })
     }
 
 }

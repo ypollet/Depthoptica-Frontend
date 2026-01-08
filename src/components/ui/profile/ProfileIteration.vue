@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useImagesStore } from "@/lib/stores";
 
-import { Landmark, type Pose } from "@/data/models/landmark";
+import { Landmark } from "@/data/models/landmark";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -136,7 +136,7 @@ function scaleVector(pose : Pose){
                             @update:model-value="changeLabelLandmark($event, profile.landmarks.first!)" />
                     </div>
                     <div class="flex items-center h-full w-auto justify-end space-x-3 pr-3">
-                        <Label class="whitespace-nowrap">{{ vectorToString(profile.landmarks.first!.depth) }}</Label>
+                        <Label class="whitespace-nowrap">{{ profile.landmarks.first!.show_pose }}</Label>
                     </div>
                     <div class="flex items-center justify-end space-x-3">
                         <Button class="relative w-6 h-6 p-0" variant="destructive"
@@ -159,7 +159,7 @@ function scaleVector(pose : Pose){
                             @update:model-value="changeLabelLandmark($event, profile.landmarks.last!)" />
                     </div>
                     <div class="flex items-center h-full w-auto justify-end space-x-3 pr-3">
-                        <Label class="whitespace-nowrap">{{ vectorToString(profile.landmarks.last!.depth) }}</Label>
+                        <Label class="whitespace-nowrap">{{ profile.landmarks.last!.show_pose }}</Label>
                     </div>
                     <div class="flex items-center justify-end space-x-3">
                         <Button class="relative w-6 h-6 p-0" variant="destructive"

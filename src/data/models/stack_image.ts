@@ -100,14 +100,8 @@ export type StackImageData = {
     thumbnail: string,
     label: string,
     size: Size,
-    has_layers: boolean,
-    has_depthmap: boolean,
-    depthMin: number,
-    depthMax: number,
-    layerThickness: number,
-    pixelRatio: Ratio,
-    camera : Camera,
-    store : StoreData,
+    camera : Camera | undefined,
+    store : StoreData | undefined,
 }
 export class StackImage {
     name: string
@@ -119,26 +113,31 @@ export class StackImage {
     store: Store
 
     static fromData(data : StackImageData){
+        let store = undefined
+        console.log(data.store)
+        if(data.store != null){
+            
+            let landmarks = new Array<Landmark>()
+            data.store.landmarks.forEach((jsonObject: Landmark) => {
+                let landmark = new Landmark(jsonObject.id, jsonObject.label, jsonObject.pos, jsonObject.pose, Color(jsonObject.color))
+                landmarks.push(landmark)
+            })
 
-        let landmarks = new Array<Landmark>()
-        data.store.landmarks.forEach((jsonObject: Landmark) => {
-            let landmark = new Landmark(jsonObject.id, jsonObject.label, jsonObject.pose, Color(jsonObject.color))
-            landmarks.push(landmark)
-        })
+            let distances = new Array<Distance>()
+            data.store.distances.forEach((jsonObject: Distance) => {
+                let landmarks = jsonObject.landmarks.map((x: Landmark) => new Landmark(x.id, x.label, x.pos, x.pose, Color(x.color)))
+                let distance = new Distance(jsonObject.label, landmarks, Color(jsonObject.color))
+                distances.push(distance)
+            })
 
-        let distances = new Array<Distance>()
-        data.store.distances.forEach((jsonObject: Distance) => {
-            let landmarks = jsonObject.landmarks.map((x: Landmark) => new Landmark(x.id, x.label, x.pose, Color(x.color)))
-            let distance = new Distance(jsonObject.label, landmarks, Color(jsonObject.color))
-            distances.push(distance)
-        })
+            let profiles = new Array<Profile>()
+            data.store.profiles.forEach((jsonObject : ProfileObject) => {
+                let profile = new Profile(jsonObject.label, Ends.fromJSON(jsonObject.landmarks), jsonObject.sub_landmarks, jsonObject.nbr_steps, Color(jsonObject.color))
+                profiles.push(profile)
+            })
 
-        let profiles = new Array<Profile>()
-        data.store.profiles.forEach((jsonObject : ProfileObject) => {
-            let profile = new Profile(jsonObject.label, Ends.fromJSON(jsonObject.landmarks), jsonObject.nbr_steps, Color(jsonObject.color))
-            profiles.push(profile)
-        })
-
+            store = new Store(landmarks, distances, profiles, data.store.adjustFactor, data.store.scale, data.store.tab, data.store.selectedDistanceIndex, data.store.selectedProfileIndex)
+        }
 
 
         return new StackImage(
@@ -148,7 +147,7 @@ export class StackImage {
             data.label,
             data.size,
             data.camera,
-            new Store(landmarks, distances, profiles, data.store.adjustFactor, data.store.scale, data.store.tab, data.store.selectedDistanceIndex, data.store.selectedProfileIndex)
+            store
         )
     }
 

@@ -1,6 +1,6 @@
-import { Landmark, type Pose } from "@/data/models/landmark"
+import { Landmark } from "@/data/models/landmark"
 import Color from "color"
-import { distance_vector } from "./coordinates"
+import { distance_vector, type Coords3D } from "./coordinates"
 
 export class Distance {
     label: string
@@ -20,15 +20,15 @@ export class Distance {
         this.color = color || Color.rgb([Math.floor(Math.random() * 256), Math.floor(Math.random() * 256), Math.floor(Math.random() * 256)])
     }
 
-    get distance(): Pose[] | undefined {
+    get distance(): Coords3D[] | undefined {
         if (this.landmarks.length < 2 || this.landmarks.some((landmark) => landmark.pose == null)) {
             return undefined
         }
-        let distance: Pose[] = new Array()
+        let intervals: Coords3D[] = new Array()
         for (let i = 1; i < this.landmarks.length; i++) {
-            distance.push(distance_vector(this.landmarks[i]!.pose!, this.landmarks[i - 1]!.pose!))
+            intervals.push(distance_vector(this.landmarks[i]!.pose!, this.landmarks[i - 1]!.pose!))
         }
-        return distance
+        return intervals
     }
 
     in(landmark: Landmark | string): boolean {

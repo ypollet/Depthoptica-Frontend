@@ -32,7 +32,6 @@ import type { DataProvider } from './providers';
 
 import axios, { type AxiosResponse } from 'axios';
 import type { Coordinates } from '../models/coordinates';
-import type { Pose } from '../models/landmark';
 
 export class OrthancProvider implements DataProvider {
     server: string;
@@ -56,9 +55,9 @@ export class OrthancProvider implements DataProvider {
         return path
     }
 
-    async computeLandmark(objectPath: string, imageName : string, pose : Coordinates): Promise<Pose> {
-        const path = this.server + '/depthoptica/' + imageName + "/position"
-        return axios.post(path, pose)
+    async computeLandmark(objectPath: string, imageName : string, pose : Coordinates): Promise<AxiosResponse> {
+        const path = this.server + '/depthoptica/' + imageName + "/position?x=" + pose.x + "&y=" + pose.y
+        return axios.get(path)
     } 
 
 }

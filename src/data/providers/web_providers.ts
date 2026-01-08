@@ -1,9 +1,8 @@
-import type { Matrix } from "mathjs";
 import type { DataProvider } from "./providers";
 
 import axios, { type AxiosResponse } from "axios";
-import type { Pose } from "../models/landmark";
 import type { Coordinates } from "../models/coordinates";
+import type { Profile } from "../models/profile";
 
 export class WebProvider implements DataProvider {
     server: string;
@@ -27,8 +26,13 @@ export class WebProvider implements DataProvider {
         return path
     }
 
-    async computeLandmark(objectPath: string, imageName : string, pose : Coordinates): Promise<Pose> {
-        const path = this.server + "/" + objectPath + '/' + imageName + "/position"
-        return axios.post(path, pose)
+    async computeLandmark(objectPath: string, imageName : string, pose : Coordinates): Promise<AxiosResponse> {
+        const path = this.server + "/" + objectPath + '/' + imageName + "/position?x=" + pose.x + "&y=" + pose.y
+        return axios.get(path)
+    }
+
+    async computeProfile(objectPath: string, imageName : string, start : Coordinates, end : Coordinates, nbr_steps : number): Promise<AxiosResponse> {
+        const path = this.server + "/" + objectPath + '/' + imageName + "/profile?x1=" + start.x + "&y1=" + start.y + "&x2=" + end.x + "&y2=" + end.y + "&nbr_steps=" + nbr_steps
+        return axios.get(path)
     }
 }

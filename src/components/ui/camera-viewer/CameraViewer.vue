@@ -13,12 +13,11 @@ import { RepositoryFactory } from '@/data/repositories/repository_factory'
 import { repositorySettings } from "@/config/appSettings"
 
 import Label from '../label/Label.vue';
-import type { Landmark } from '@/data/models/landmark';
-import type { Distance } from '@/data/models/distance';
 
 async function getImages(): Promise<Array<StackImage>> {
   console.log("Get Images")
   if (imagesStore.images.length > 0) {
+     console.log("already has images")
     try {
       return imagesStore.images as StackImage[]
     }catch(error){
@@ -29,7 +28,14 @@ async function getImages(): Promise<Array<StackImage>> {
     
   }
   imagesStore.index = 0
+  console.log("getting new ")
   return repository.getImages(imagesStore.objectPath).then(async (data) => {
+    imagesStore.images = data.images.map((image: StackImageData) => {
+      console.log(image)
+      let stack_image = StackImage.fromData(image)
+      
+      return stack_image
+    })
     return imagesStore.images as StackImage[]
   })
 }
@@ -40,7 +46,6 @@ const repository = RepositoryFactory.get(repositorySettings.type)
 
 
 const imagesStore = useImagesStore()
-
 
 const { isPending, isError, data, error } = useQuery({
   queryKey: ['all_images'],

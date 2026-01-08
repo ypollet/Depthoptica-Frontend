@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted, nextTick, type HTMLAttributes, watch,  useTemplateRef } from 'vue'
+import { ref, onMounted, nextTick, type HTMLAttributes, watch,  useTemplateRef, computed } from 'vue'
 import { cn, ZOOM_MAX, ZOOM_MIN, DOT_RADIUS, SPACE_TARGET } from '@/lib/utils'
 import { type Coordinates } from "@/data/models/coordinates"
-import { Landmark, type Pose } from "@/data/models/landmark"
+import { Landmark } from "@/data/models/landmark"
 import { useImagesStore } from '@/lib/stores'
 import { RepositoryFactory } from '@/data/repositories/repository_factory'
 import { repositorySettings } from "@/config/appSettings"
@@ -19,6 +19,15 @@ const repository = RepositoryFactory.get(repositorySettings.type)
 const imagesStore = useImagesStore()
 
 const { selectedImage } = storeToRefs(imagesStore)
+
+const landmarks = computed(() => selectedImage.value.store.landmarks)
+
+watch((landmarks), (current, old) => {
+  console.log("landmarks updated")
+  console.log(current)
+  console.log(old)
+},
+{ deep : true})
 
 const props = defineProps<{
   class?: HTMLAttributes['class']
@@ -305,19 +314,13 @@ function drawImage() {
             x: lastPos.x - firstPos.x,
             y: lastPos.y - firstPos.y
           }
-        if (moving) {
-          for (let i = 1; i <= selectedImage.value.store.profiles[index]!.nbr_steps; i++) {
-            let marker = {
-              x: firstPos.x + vector.x * i / (selectedImage.value.store.profiles[index]!.nbr_steps + 1),
-              y: firstPos.y + vector.y * i / (selectedImage.value.store.profiles[index]!.nbr_steps + 1)
-            }
-            drawSubLandmark(ctx, marker, profile.color, radius, vector)
+        for (let i = 1; i <= selectedImage.value.store.profiles[index]!.nbr_steps; i++) {
+          let marker = {
+            x: firstPos.x + vector.x * i / (selectedImage.value.store.profiles[index]!.nbr_steps + 1),
+            y: firstPos.y + vector.y * i / (selectedImage.value.store.profiles[index]!.nbr_steps + 1)
           }
-        } else {
-          profile.sub_landmarks!.forEach((pose: Coordinates) => drawSubLandmark(ctx, pose, profile.color, radius, vector))
+          drawSubLandmark(ctx, marker, profile.color, radius, vector)
         }
-
-
       }
 
     });
@@ -519,18 +522,6 @@ function zoomWithWheel(event: WheelEvent) {
   update()
 }
 
-/*
-async function computePose(pos: Coordinates): Promise<Pose> {
-  return {
-    x: pos.x,
-    y: pos.y,
-    depth: imagesStore.getDepthData(pos, imagesStore.index),
-    layer: imagesStore.getLayerData(pos, imagesStore.index),
-  }
-  
-}
-*/
-
 function startDrag(event: MouseEvent) {
   let pos = getPos(event)
   if (event.button == 0) {
@@ -538,15 +529,9 @@ function startDrag(event: MouseEvent) {
 
     let landmark = checkPointCircle(pos)
     landmarkDragged.value = landmark
-    draggedPos.value = landmark?.pose ?? { x: -1, y: -1 }
+    draggedPos.value = pos
   }
   else if (event.button == 2) {
-    let pose: Pose = {
-      x: pos.x,
-      y: pos.y,
-      depth: -1,
-      layer: -1
-    }
     if (!onImage(pos)) {
       // Image not clicked
       return;
@@ -565,17 +550,17 @@ function startDrag(event: MouseEvent) {
           break;
         case "distances":
           if (selectedImage.value.store.selectedDistance) {
-            addLandmarkToDistance(pose, selectedImage.value.store.selectedDistance)
+            addLandmarkToDistance(pos, selectedImage.value.store.selectedDistance)
           } else {
-            addDistance(pose)
+            addDistance(pos)
             selectedImage.value.store.selectedDistanceIndex = selectedImage.value.store.distances.length - 1
           }
           break;
         case "profiles":
           if (selectedImage.value.store.selectedProfile) {
-            addLandmarkToProfile(pose, selectedImage.value.store.selectedProfile)
+            addLandmarkToProfile(pos, selectedImage.value.store.selectedProfile)
           } else {
-            addProfile(pose)
+            addProfile(pos)
             selectedImage.value.store.selectedProfileIndex = selectedImage.value.store.profiles.length - 1
           }
           break;
@@ -624,6 +609,7 @@ function stopDrag(event: MouseEvent) {
       }
     }
     let landmark = landmarkDragged.value
+    landmark.pos = pos
     repository.computeLandmark(imagesStore.objectPath, imagesStore.selectedImage.name, pos).then((pose) => {
       landmark.setPose(pose)
     })
@@ -693,43 +679,44 @@ function onImage(pos: Coordinates): boolean {
   return false
 }
 
-function addLandmarkToDistance(pose: Pose, distance: Distance) {
-  distance.landmarks.push(createLandmark(pose, distance.color))
+async function addLandmarkToDistance(pos: Coordinates, distance: Distance) {
+  let landmark = createLandmark(pos, distance.color)
+  distance.landmarks.push(await landmark)
 }
 
-function addDistance(pose: Pose) {
+async function addDistance(pos: Coordinates) {
   let distance = new Distance("Distance " + (selectedImage.value.store.distances.length + 1))
   let index = selectedImage.value.store.distances.push(distance) - 1
-  let landmark = createLandmark(pose, distance.color)
-  selectedImage.value.store.distances[index]!.landmarks.push(landmark);
+  let landmark = createLandmark(pos, distance.color)
+  selectedImage.value.store.distances[index]!.landmarks.push(await landmark);
 }
 
-function addLandmarkToProfile(pose: Pose, profile: Profile) {
-  let landmark = createLandmark(pose, profile.color)
-  profile.addLandmark(landmark)
+async function addLandmarkToProfile(pos: Coordinates, profile: Profile) {
+  let landmark = createLandmark(pos, profile.color)
+  profile.addLandmark(await landmark)
 }
 
-function addProfile(pose: Pose) {
+async function addProfile(pos: Coordinates) {
   let profile = new Profile("Profile " + (selectedImage.value.store.profiles.length + 1))
   let index = selectedImage.value.store.profiles.push(profile) - 1
-  let landmark = createLandmark(pose, profile.color)
-  selectedImage.value.store.profiles[index]!.landmarks.add(landmark);
+  let landmark = createLandmark(pos, profile.color)
+  selectedImage.value.store.profiles[index]!.landmarks.add(await landmark);
 }
 
-function createLandmark(pos: Coordinates, color: Color | undefined = undefined): Landmark {
+async function createLandmark(pos: Coordinates, color: Color | undefined = undefined): Promise<Landmark> {
   let id = selectedImage.value.store.generateID()
-  let landmark =  new Landmark(id, id, pos, null, color)
-  
-  repository.computeLandmark(imagesStore.objectPath, imagesStore.selectedImage.name, pos).then((pose) => {
-    landmark.setPose(pose)
+  let pose = await repository.computeLandmark(imagesStore.objectPath, imagesStore.selectedImage.name, pos).then((pose) => {
+    return pose
   })
+
+  let landmark =  new Landmark(id, id, pos, pose, color)
   return landmark
 }
 
 
 
-function generateLandmark(pos: Coordinates) {
-  selectedImage.value.store.landmarks.push(createLandmark(pos))
+async function generateLandmark(pos: Coordinates) {
+  selectedImage.value.store.landmarks.push(await createLandmark(pos))
 }
 
 function deleteLandmark(landmark: Landmark) {

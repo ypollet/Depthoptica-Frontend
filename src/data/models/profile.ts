@@ -1,20 +1,22 @@
 import { Landmark } from "@/data/models/landmark"
 import Color from "color"
-import { type Coordinates } from "./coordinates"
+import { distance_vector, type Coords3D } from "./coordinates"
 import { Deque } from "./structures"
 
 export class Profile {
     label: string
     landmarks: Ends
+    sub_landmarks: Coords3D[]
     nbr_steps: number
     color: Color
     edit_label: boolean
     edit_profile: boolean
     show: boolean
 
-    constructor(label: string, landmarks: Ends | null = null, nbr_steps: number | null = null, color: Color | null = null) {
+    constructor(label: string, landmarks: Ends | null = null, sub_landmarks: Coords3D[] | null = null, nbr_steps: number | null = null, color: Color | null = null) {
         this.label = label
         this.landmarks = landmarks || new Ends
+        this.sub_landmarks = sub_landmarks || []
         this.nbr_steps = nbr_steps || 0
         this.edit_label = false
         this.edit_profile = false
@@ -22,23 +24,18 @@ export class Profile {
         this.color = color || Color.rgb([Math.floor(Math.random() * 256), Math.floor(Math.random() * 256), Math.floor(Math.random() * 256)])
     }
 
-    get sub_landmarks(): Coordinates[] | undefined {
+    get distance(): Coords3D[] | undefined {
         if (!this.landmarks.isFull()) {
             return undefined
         }
-        let sub_landmarks: Coordinates[] = []
-        let vector = {
-            x: this.landmarks.last!.pose.x - this.landmarks.first!.pose.x,
-            y: this.landmarks.last!.pose.y - this.landmarks.first!.pose.y
-        }
-        for (let i = 1; i <= this.nbr_steps; i++) {
-            let marker = {
-                x: this.landmarks.first!.pose.x + vector.x * i / (this.nbr_steps + 1),
-                y: this.landmarks.first!.pose.y + vector.y * i / (this.nbr_steps + 1)
-            }
-            sub_landmarks.push(marker)
-        }
-        return sub_landmarks
+        let intervals: Coords3D[] = []
+        let current : Coords3D = this.landmarks.first!.pose!
+        this.sub_landmarks.forEach((pose) => {
+            intervals.push(distance_vector(current, pose))
+            current = pose
+        })
+        intervals.push(distance_vector(current, this.landmarks.last!.pose!))
+        return intervals
     }
 
     reset(): void {
@@ -78,8 +75,7 @@ export class Profile {
 export class Ends extends Deque<Landmark> {
 
     static fromJSON(json: EndsObject) {
-
-        let landmarks = json.array.map((x: Landmark) => new Landmark(x.id, x.label, x.pose, Color(x.color)))
+        let landmarks = json.array.map((x: Landmark) => new Landmark(x.id, x.label, x.pos, x.pose, Color(x.color)))
         return new Ends((landmarks.length > 0) ? landmarks[0] : null, (landmarks.length >= 2) ? landmarks[1] : null)
     }
 
@@ -118,4 +114,10 @@ export class Ends extends Deque<Landmark> {
 export type EndsObject = {
     array: Array<Landmark>,
     maxLength: number
+}
+
+export type ProfileLandmarks = {
+    start : Coords3D,
+    subLandmarks : Coords3D[],
+    end : Coords3D,
 }

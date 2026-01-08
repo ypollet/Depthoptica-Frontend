@@ -1,25 +1,17 @@
 import Color from "color"
-import type { Coordinates, Coords3D } from "@/data/models/coordinates"
-import type { ImageName } from "@/data/models/stack_image"
-
-export type Pose = {
-    x: number,
-    y: number,
-    depth: number,
-    layer: number
-}
+import { vectorToString, type Coordinates, type Coords3D } from "@/data/models/coordinates"
 
 export class Landmark {
     id: string
     label: string
     pos: Coordinates
-    pose: Pose | null
+    pose: Coords3D
     color: Color
     show: boolean
     edit: boolean
 
     
-    constructor(id: string, label: string, pos : Coordinates, pose: Pose | null, color: Color | null = null) {
+    constructor(id: string, label: string, pos : Coordinates, pose: Coords3D, color: Color | null = null) {
         this.id = id
         this.label = label
         this.pos = pos
@@ -27,6 +19,10 @@ export class Landmark {
         this.edit = false
         this.color = color || Color.rgb([Math.floor(Math.random() * 256), Math.floor(Math.random() * 256), Math.floor(Math.random() * 256)])
         this.show = true
+    }
+
+    get show_pose() : string{
+        return vectorToString(this.pose || { x: 0, y: 0, z:0})
     }
 
     equals(other : Landmark | string | null | undefined){
@@ -40,22 +36,7 @@ export class Landmark {
     }
 
     toJSON() {
-        return { id: this.id, label: this.label, color: this.color.hex(), pose: this.pose}
-    }
-    get depth(): Coords3D{
-        return {
-            x: this.pose?.x || 0,
-            y: this.pose?.y || 0,
-            z: this.pose?.depth || 0
-        }
-    }
-
-    get layer(): Coords3D{
-        return {
-            x: this.pose?.x || 0,
-            y: this.pose?.y || 0,
-            z: this.pose?.layer || 0
-        }
+        return { id: this.id, label: this.label, color: this.color.hex(), pos: this.pos, pose: this.pose}
     }
 
     getId() : string {
@@ -81,11 +62,11 @@ export class Landmark {
         this.color = Color.rgb(color[0]!, color[1]!, color[2]!)
     }
 
-    setPose(pose : Pose) {
+    setPose(pose : Coords3D) {
         this.pose = pose
     }
     
-    getPose() : Pose | null{
+    getPose() : Coords3D | null{
         return this.pose
     }
     

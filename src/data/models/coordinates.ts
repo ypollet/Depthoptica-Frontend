@@ -1,6 +1,4 @@
 import * as math from "mathjs"
-import type { Pose } from "./landmark"
-import type { Intrinsics, Ratio } from "./stack_image"
 
 export type Coordinates = {
     x: number,
@@ -26,12 +24,11 @@ export function vectorToString(vector: Vector3D) {
     return `(${vector.x.toFixed(2)}; ${vector.y.toFixed(2)}; ${vector.z.toFixed(2)})`
 }
 
-export function distance_vector(first: Pose, second: Pose) : Pose{
+export function distance_vector(first: Coords3D, second: Coords3D) : Coords3D{
     return {
         x: math.abs(second.x - first.x),
         y: math.abs(second.y - first.y),
-        depth: math.abs(second.depth - first.depth),
-        layer: math.abs(second.layer - first.layer)
+        z: math.abs(second.z - first.z),
     }
 }
 

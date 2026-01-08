@@ -11,17 +11,17 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 
 import * as math from "mathjs"
 import { Scale } from "@/lib/utils";
-import type { Pose } from "@/data/models/landmark";
 import { storeToRefs } from "pinia";
+import type { Coords3D } from "@/data/models/coordinates";
 
 const STEP = 0.01
 const imagesStore = useImagesStore()
 const { selectedImage } = storeToRefs(imagesStore)
 
-function computeDistance(intervals: Pose[]): number {
+function computeDistance(intervals: Coords3D[]): number {
     let dist = 0
-    intervals.forEach((interval : Pose) => {
-        let squared = math.map(Object.values(scaleVector(interval)), math.square)
+    intervals.forEach((interval : Coords3D) => {
+        let squared = math.map(Object.values(interval), math.square)
         let sum = math.sum(squared)
         // can't be a Complex number
         dist += math.sqrt(sum) as number
@@ -35,16 +35,6 @@ function changeScale(payload: string | number, distance: Distance) {
 
 function resetScale() {
     selectedImage.value.store.adjustFactor = 1
-}
-
-
-function scaleVector(pose : Pose){
-    /*
-    if(selectedImage.value.pixelRatio != null && selectedImage.value.depthMin != null && selectedImage.value.depthMax != null){
-         return scaleDepthRatio(pose, selectedImage.value.pixelRatio, selectedImage.value.depthMin, selectedImage.value.depthMax)
-    }
-         */
-    return {x : pose.x, y: pose.y, z:pose.depth}
 }
 
 </script>

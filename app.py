@@ -14,9 +14,8 @@ import json
 import base64
 
 from PIL import Image
-import cv2
 import numpy as np
-
+import time
 
 cwd = os.getcwd()
 
@@ -112,6 +111,7 @@ def images(id):
 
     encoded_images = []
     for image_id in stack_file["stacked"]:
+        print(image_id)
         image_data = stack_file["stacked"][image_id]["data"]
 
         with open(
@@ -128,21 +128,12 @@ def images(id):
                         "width": image_data["width"],
                         "height": image_data["height"],
                     },
-                    "has_depthmap": stack_file["stacked"][image_id]["depthmap"] != "",  # "",  # f"data:image/png;base64,{depth_bytes.decode('ascii')}",
-                    "has_layers": stack_file["stacked"][image_id]["layers"] != "",  # "",  #f"data:image/png;base64,{layer_bytes.decode('ascii')}"
-                    "layerThickness": image_data["step"],
-                    "intrinsics": image_data["intrinsics"],
-                    "depthMin": image_data["Zmin"],
-                    "depthMax": image_data["Zmax"],
-                    "pixelRatio": {
-                        "width": image_data["PixelRatio"][0],
-                        "height": image_data["PixelRatio"][1],
-                    },
                 }
             )
         except Exception as error:
-            print(error)
+            print(f"Error : {error}")
             continue
+    print(encoded_images)
     to_jsonify["images"] = encoded_images
     to_jsonify["thumbnails"] = len(stack_file["thumbnails"]) != 0
 
@@ -152,9 +143,49 @@ def images(id):
 @app.route("/<id>/<image_id>/position")
 @cross_origin()
 def compute_landmark(id, image_id):
-    x = round(float(request.args.get("x")))
-    y = round(float(request.args.get("y")))
+    x = float(request.args.get("x"))
+    y = float(request.args.get("y"))
 
+
+    directory = f"{DATA_FOLDER}/{id}"
+    if not os.path.exists(directory):
+        abort(404)
+        
+    with open(f"{directory}/depth.json", "r") as f:
+        stack_file = json.load(f)
+    image = stack_file["stacked"][image_id]
+    image_data = image["data"]
+
+    
+    with Image.open(f"{directory}/{image['depthmap']}") as im :
+        depth = im.getpixel((round(x),round(y)))
+        print(depth)
+    position = {
+            "x": x * image_data["PixelRatio"][0],
+            "y": y * image_data["PixelRatio"][1],
+            "z": ((image_data["Zmax"] - image_data["Zmin"]) / 65536 * depth) #65536
+            + image_data["Zmin"],
+        }
+    
+    return jsonify(position)
+
+@app.route("/<id>/<image_id>/profile")
+@cross_origin()
+def compute_profile(id, image_id):
+    x1 = float(request.args.get("x1"))
+    y1 = float(request.args.get("y1"))
+
+    x2 = float(request.args.get("x2"))
+    y2 = float(request.args.get("y2"))
+
+    nbr_steps = round(float(request.args.get("nbr_steps")))
+
+    vector = {
+            "x": x2 - x1,
+            "y": y2 - y1
+          }
+
+    
 
     directory = f"{DATA_FOLDER}/{id}"
     if not os.path.exists(directory):
@@ -165,19 +196,55 @@ def compute_landmark(id, image_id):
     image_data = stack_file["stacked"][image_id]["data"]
     # z = ((image_data["Zmax"] - image_data["Zmin"]) / 256 * img[x, y]) + image_data["Zmin"] # depthmap
     # z * image_data["step"] # layers
-    with Image.open(f"{directory}/{image_data["depthmap"]}") as im :
-        depth = im.getpixel((0,0))
-    with Image.open(f"{directory}/{image_data["layers"]}") as im :
-        layer = im.getpixel((0,0))
-    position = {
-            "x": x * image_data["PixelRatio"][0],
-            "y": y * image_data["PixelRatio"][1],
-            "depth": ((image_data["Zmax"] - image_data["Zmin"]) / 65536 * depth)
+
+
+    sub_landmarks = []
+
+    with Image.open(f"{directory}/{image_data['depthmap']}") as depth :
+        #depthmap = np.array(depth)
+        #depth1 = depthmap[round(y1)][round(x1)]
+        depth1 = depth.getpixel((round(x1),round(y1)))
+
+        start = {
+            "x": x1 * image_data["PixelRatio"][0],
+            "y": y1 * image_data["PixelRatio"][1],
+            "depth": ((image_data["Zmax"] - image_data["Zmin"]) / 65536 * depth1)
             + image_data["Zmin"],
-            "layer": layer * image_data["step"],
         }
 
-    return jsonify(position)
+        for i in range(1, nbr_steps+1):
+            next = {"x": x1 + vector["x"] * i / (nbr_steps + 1), "y": y1 + vector["y"] * i / (nbr_steps + 1)}
+
+            #depth_cur = depthmap[round(next['y'])][round(next['x'])]
+            depth_cur = depth.getpixel((round(next['x']),round(next['y'])))
+
+            sub_landmarks.append(
+                {
+                    "x": next['x'] * image_data["PixelRatio"][0],
+                    "y": next['y'] * image_data["PixelRatio"][1],
+                    "depth": ((image_data["Zmax"] - image_data["Zmin"]) / 65536 * depth_cur)
+                    + image_data["Zmin"],
+                }
+            )
+
+
+        #depth2 = depthmap[round(y2)][round(x2)]
+        depth2 = depth.getpixel((round(x2),round(y2)))
+
+        end = {
+            "x": x2 * image_data["PixelRatio"][0],
+            "y": y2 * image_data["PixelRatio"][1],
+            "depth": ((image_data["Zmax"] - image_data["Zmin"]) / 65536 * depth2)
+            + image_data["Zmin"],
+        }
+    
+    
+
+    return jsonify({
+        "start": start,
+        "end" : end,
+        "subLandmarks": sub_landmarks
+    })
 
 
 if __name__ == "__main__":

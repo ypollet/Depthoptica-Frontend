@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useLandmarksStore, useImagesStore } from "@/lib/stores";
+import { useImagesStore } from "@/lib/stores";
 
 import { ProfileIteration } from ".";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";

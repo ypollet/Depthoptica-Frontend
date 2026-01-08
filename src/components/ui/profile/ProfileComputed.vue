@@ -9,51 +9,34 @@ import { Input } from '@/components/ui/input'
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-
-
 import * as math from "mathjs"
 import { Scale } from "@/lib/utils";
-import { distance_vector, type Coordinates } from "@/data/models/coordinates";
-import type { Pose } from "@/data/models/landmark";
+import {  type Coords3D } from "@/data/models/coordinates";
 import { storeToRefs } from "pinia";
+import { RepositoryFactory } from "@/data/repositories/repository_factory";
+import { repositorySettings } from "@/config/appSettings";
+
+const repository = RepositoryFactory.get(repositorySettings.type)
+
 
 const STEP = 0.01
 const imagesStore = useImagesStore()
 const { selectedImage } = storeToRefs(imagesStore)
 
 
-function computeDistance(profile : Profile): number {
-    if(!profile.landmarks.isFull() || profile.landmarks.first!.pose == null || profile.landmarks.last!.pose == null){
-        return 0
-    }
-    let intervals : Pose[] = []
-    let before : Pose = profile.landmarks.first!.pose
-    profile.sub_landmarks!.forEach((landmark : Coordinates) => {
-        let current : Pose = {
-            x: landmark.x,
-            y: landmark.y,
-            depth: imagesStore.getDepthData(landmark, imagesStore.index),
-            layer: imagesStore.getLayerData(landmark, imagesStore.index)
-        }
-        intervals.push(distance_vector(before, current))
-        before = current
-    })
-    let last : Pose = profile.landmarks.last!.pose
-    intervals.push(distance_vector(before, last))
-
+function computeDistance(intervals: Coords3D[]): number {
     let dist = 0
-    intervals.forEach((interval) => {
-        let squared = math.map(Object.values(scaleVector(interval)), math.square)
+    intervals.forEach((interval : Coords3D) => {
+        let squared = math.map(Object.values(interval), math.square)
         let sum = math.sum(squared)
         // can't be a Complex number
         dist += math.sqrt(sum) as number
     })
-
     return dist
 }
 
 function changeScale(payload: string | number, profile: Profile) {
-    selectedImage.value.store.adjustFactor = math.number(payload) / computeDistance(profile) * math.number(Scale[selectedImage.value.store.scale as keyof typeof Scale])
+    selectedImage.value.store.adjustFactor = math.number(payload) / computeDistance(profile.distance!) * math.number(Scale[selectedImage.value.store.scale as keyof typeof Scale])
 }
 
 function resetFactor() {
@@ -64,14 +47,16 @@ function updateProfileSteps(steps : string | number, profile : Profile){
     profile.nbr_steps = math.number(steps)
 }
 
+/*
 function scaleVector(pose : Pose){
     /*
     if(selectedImage.value.pixelRatio != null && selectedImage.value.depthMin != null && selectedImage.value.depthMax != null){
          return scaleDepthRatio(pose, selectedImage.value.pixelRatio, selectedImage.value.depthMin, selectedImage.value.depthMax)
     }
-         */
+         * /
     return {x : pose.x, y: pose.y, z:pose.depth}
 }
+*/
 </script>
 
 <template>
@@ -111,12 +96,12 @@ function scaleVector(pose : Pose){
                         <Input type="number" min="0" step="1" max="100" :model-value="profile.nbr_steps" class="flex w-max"
                             @update:model-value="updateProfileSteps($event, profile)"/>
                         <Label v-show="!profile.edit_profile" class="flex whitespace-nowrap w-auto"
-                            @dblclick="profile.edit_profile = true">{{ math.round(((profile != null) ?
-                                computeDistance(profile as Profile) * selectedImage.store.adjustFactor /
+                            @dblclick="profile.edit_profile = true">{{ math.round(((profile.distance) ?
+                                computeDistance(profile.distance) * selectedImage.store.adjustFactor /
                                 math.number(Scale[selectedImage.store.scale as keyof typeof Scale]) : 0), 5) }} {{
                                 selectedImage.store.scale }}</Label>
                         <Input v-show="profile.edit_profile" type="number" :min="0" :step="STEP"
-                            :model-value="(profile.sub_landmarks) ? computeDistance(profile as Profile) * selectedImage.store.adjustFactor / math.number(Scale[selectedImage.store.scale as keyof typeof Scale]) : 0"
+                            :model-value="(profile.distance) ? computeDistance(profile.distance) * selectedImage.store.adjustFactor / math.number(Scale[selectedImage.store.scale as keyof typeof Scale]) : 0"
                             class="flex h-auto w-auto px-0" @focusout="profile.edit_profile = false"
                             @keyup.enter="profile.edit_profile = false"
                             @update:model-value="changeScale($event, profile as Profile)" />

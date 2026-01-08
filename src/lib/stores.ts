@@ -2,15 +2,10 @@ import { defineStore, type StateTree } from 'pinia'
 import { Distance } from '@/data/models/distance'
 import { Landmark } from '@/data/models/landmark'
 import Color from 'color'
-import { StackImage, Store, type StackImageData } from '@/data/models/stack_image'
-import { RepositoryFactory } from '@/data/repositories/repository_factory'
-import { repositorySettings } from '@/config/appSettings'
-import { Ends, Profile, type EndsObject } from '@/data/models/profile'
+import { StackImage, type StackImageData } from '@/data/models/stack_image'
+import {  Profile, type EndsObject } from '@/data/models/profile'
 import destr from "destr"
-import type { Coordinates } from '@/data/models/coordinates'
-import { round } from 'mathjs'
-
-const repository = RepositoryFactory.get(repositorySettings.type)
+import type { Coords3D } from '@/data/models/coordinates'
 
 const DEF_SIZE = 200
 export const DEFAULT_TAB = "viewer"
@@ -71,8 +66,6 @@ export const useImagesStore = defineStore('images', {
             objectPath: (data as any).objectPath,
             index: (data as any).index,
             images,
-            zoom: (data as any).zoom,
-            offset: (data as any).offset,
           }
           return JSON.stringify(out)
         } catch (e) {
@@ -191,6 +184,7 @@ export type ProfileObject = {
   label: string
   landmarks: EndsObject
   nbr_steps: number,
+  sub_landmarks: Array<Coords3D>,
   color: string
 }
 
