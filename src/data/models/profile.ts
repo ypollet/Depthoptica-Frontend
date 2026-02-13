@@ -1,13 +1,12 @@
 import { Landmark } from "@/data/models/landmark"
 import Color from "color"
-import { distance_vector, type Coords3D } from "./coordinates"
+import { distance_vector, type Coordinates, type Coords3D } from "./coordinates"
 import { Deque } from "./structures"
 
 export class Profile {
     label: string
     landmarks: Ends
     sub_landmarks: Coords3D[]
-    nbr_steps: number
     color: Color
     edit_label: boolean
     edit_profile: boolean
@@ -17,11 +16,28 @@ export class Profile {
         this.label = label
         this.landmarks = landmarks || new Ends
         this.sub_landmarks = sub_landmarks || []
-        this.nbr_steps = nbr_steps || 0
         this.edit_label = false
         this.edit_profile = false
         this.show = true
         this.color = color || Color.rgb([Math.floor(Math.random() * 256), Math.floor(Math.random() * 256), Math.floor(Math.random() * 256)])
+    }
+
+    get graph(): Coordinates[] {
+        if (this.sub_landmarks.length === 0) {
+            return []
+        }
+
+        const origin = this.sub_landmarks[0]!
+        return this.sub_landmarks.map((point) => {
+            const dx = point.x - origin.x
+            const dy = point.y - origin.y
+            const dz = point.z - origin.z
+
+            return {
+                x: Math.sqrt(dx * dx + dy * dy),
+                y: dz,
+            }
+        })
     }
 
     get distance(): Coords3D[] | undefined {
@@ -68,7 +84,12 @@ export class Profile {
     }
 
     toJSON() {
-        return { label: this.label, nbr_steps: this.nbr_steps, color: this.color.hex(), landmarks: this.landmarks.toJSON() }
+        return { label: this.label, color: this.color.hex(), landmarks: this.landmarks.toJSON(), sub_landmarks: this.sub_landmarks }
+    }
+
+    static fromJSON(json: any): Profile {
+        const landmarks = Ends.fromJSON(json.landmarks)
+        return new Profile(json.label, landmarks, json.sub_landmarks || [], json.nbr_steps, Color(json.color))
     }
 }
 

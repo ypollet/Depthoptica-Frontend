@@ -10,7 +10,7 @@ import type { Ratio } from '@/data/models/stack_image'
 import { Distance } from '@/data/models/distance'
 import type Color from 'color'
 import { storeToRefs } from 'pinia'
-import { Profile } from '@/data/models/profile'
+import { Profile, type ProfileLandmarks } from '@/data/models/profile'
 import { max, min } from 'mathjs'
 
 
@@ -21,13 +21,6 @@ const imagesStore = useImagesStore()
 const { selectedImage } = storeToRefs(imagesStore)
 
 const landmarks = computed(() => selectedImage.value.store.landmarks)
-
-watch((landmarks), (current, old) => {
-  console.log("landmarks updated")
-  console.log(current)
-  console.log(old)
-},
-{ deep : true})
 
 const props = defineProps<{
   class?: HTMLAttributes['class']
@@ -81,6 +74,8 @@ var full_image = new Image()
 const shiftCanvas = ref<Coordinates>({ x: 0, y: 0 })
 const dragging = ref<boolean>(false)
 const landmarkDragged = ref<Landmark | null>(null)
+const profileDragged = ref<Profile | null>(null)
+
 const draggedPos = ref<Coordinates>({ x: -1, y: -1 })
 
 const degrees_to_radians = (deg: number) => (deg * Math.PI) / 180.0; // Convert degrees to radians using the formula: radians = (degrees * Math.PI) / 180
@@ -314,10 +309,10 @@ function drawImage() {
             x: lastPos.x - firstPos.x,
             y: lastPos.y - firstPos.y
           }
-        for (let i = 1; i <= selectedImage.value.store.profiles[index]!.nbr_steps; i++) {
+        for (let i = 1; i <= 20; i++) {
           let marker = {
-            x: firstPos.x + vector.x * i / (selectedImage.value.store.profiles[index]!.nbr_steps + 1),
-            y: firstPos.y + vector.y * i / (selectedImage.value.store.profiles[index]!.nbr_steps + 1)
+            x: firstPos.x + vector.x * i / (20 + 1),
+            y: firstPos.y + vector.y * i / (20 + 1)
           }
           drawSubLandmark(ctx, marker, profile.color, radius, vector)
         }
@@ -609,11 +604,25 @@ function stopDrag(event: MouseEvent) {
       }
     }
     let landmark = landmarkDragged.value
-    landmark.pos = pos
-    repository.computeLandmark(imagesStore.objectPath, imagesStore.selectedImage.name, pos).then((pose) => {
-      landmark.setPose(pose)
-    })
-    
+    landmark.pos = pos 
+    if(profileDragged.value != null){
+      let profile = profileDragged.value as Profile
+      repository.computeLandmark(imagesStore.objectPath, imagesStore.selectedImage.name, pos).then((pose) => {
+        landmark.setPose(pose)
+        repository.computeProfile(imagesStore.objectPath, imagesStore.selectedImage.name, profile).then((profileLandmarks) => {
+          if(profileLandmarks == undefined){
+            return;
+          }
+            profile.landmarks.first!.pose = profileLandmarks.start
+            profile.sub_landmarks = profileLandmarks.subLandmarks
+            profile.landmarks.last!.pose = profileLandmarks.end
+        })
+      })
+    }else{
+      repository.computeLandmark(imagesStore.objectPath, imagesStore.selectedImage.name, pos).then((pose) => {
+        landmark.setPose(pose)
+      })
+    }
 
     // reinit landmarkDrag
     reinitDraggedLandmark()
@@ -623,6 +632,7 @@ function stopDrag(event: MouseEvent) {
 
 function reinitDraggedLandmark() {
   landmarkDragged.value = null
+  profileDragged.value = null
   draggedPos.value = { x: -1, y: -1 }
 }
 
@@ -647,12 +657,16 @@ function checkPointCircle(pos: Coordinates): Landmark | null {
       landmarkClicked = checkDragLandmark(pos, landmark) || landmarkClicked
     })
   })
-  selectedImage.value.store.profiles.forEach((profiles) => {
-    if (!profiles.show) {
+  selectedImage.value.store.profiles.forEach((profile) => {
+    if (!profile.show) {
       return;
     }
-    profiles.landmarks.forEach((landmark) => {
+    profile.landmarks.forEach((landmark) => {
       landmarkClicked = checkDragLandmark(pos, landmark) || landmarkClicked
+      if(landmark.equals(landmarkClicked)){
+        profileDragged.value = profile
+      }
+      
     })
   })
   return landmarkClicked
@@ -694,6 +708,14 @@ async function addDistance(pos: Coordinates) {
 async function addLandmarkToProfile(pos: Coordinates, profile: Profile) {
   let landmark = createLandmark(pos, profile.color)
   profile.addLandmark(await landmark)
+  repository.computeProfile(imagesStore.objectPath, selectedImage.value.name, profile).then((profileLandmarks :  ProfileLandmarks | undefined) => {
+    if(profileLandmarks == undefined){
+      return;
+    }
+    profile.landmarks.first!.pose = profileLandmarks.start
+    profile.sub_landmarks = profileLandmarks.subLandmarks
+    profile.landmarks.last!.pose = profileLandmarks.end
+  })
 }
 
 async function addProfile(pos: Coordinates) {

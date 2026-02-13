@@ -31,8 +31,8 @@ export class WebProvider implements DataProvider {
         return axios.get(path)
     }
 
-    async computeProfile(objectPath: string, imageName : string, start : Coordinates, end : Coordinates, nbr_steps : number): Promise<AxiosResponse> {
-        const path = this.server + "/" + objectPath + '/' + imageName + "/profile?x1=" + start.x + "&y1=" + start.y + "&x2=" + end.x + "&y2=" + end.y + "&nbr_steps=" + nbr_steps
+    async computeProfile(objectPath: string, imageName : string, start : Coordinates, end : Coordinates): Promise<AxiosResponse> {
+        const path = this.server + "/" + objectPath + '/' + imageName + "/profile?x1=" + start.x + "&y1=" + start.y + "&x2=" + end.x + "&y2=" + end.y
         return axios.get(path)
     }
 }

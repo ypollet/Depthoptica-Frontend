@@ -41,12 +41,11 @@ export class DataRepository implements Repository {
         })
     }
 
-    async computeProfile(objectPath: string, imageName : string, profile : Profile): Promise<ProfileLandmarks | undefined
-    > {
+    async computeProfile(objectPath: string, imageName : string, profile : Profile): Promise<ProfileLandmarks | undefined> {
         if(!profile.landmarks.isFull()){
             return undefined
         }
-        return this.provider.computeProfile(objectPath, imageName, profile.landmarks.first!.pos, profile.landmarks.last!.pos, profile.nbr_steps).then((res) => {
+        return this.provider.computeProfile(objectPath, imageName, profile.landmarks.first!.pos, profile.landmarks.last!.pos).then((res) => {
             return res.data as ProfileLandmarks
         })
     }

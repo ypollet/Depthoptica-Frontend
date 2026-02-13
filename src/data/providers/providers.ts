@@ -7,5 +7,5 @@ export interface DataProvider {
         getFullImage : (objectPath:string, imageName : string) => string;
         getThumbnail : (objectPath:string, imageName : string) => string;
         computeLandmark : (objectPath: string, imageName : string, pose : Coordinates) => Promise<AxiosResponse>;
-        computeProfile : (objectPath: string, imageName : string, start : Coordinates, end : Coordinates, nbr_steps : number) => Promise<AxiosResponse>;
+        computeProfile : (objectPath: string, imageName : string, start : Coordinates, end : Coordinates) => Promise<AxiosResponse>;
 }

@@ -13,9 +13,11 @@ import os
 import json
 import base64
 
-from PIL import Image
+from PIL import Image, ImageFile
+import cv2
 import numpy as np
 import time
+import math
 
 cwd = os.getcwd()
 
@@ -35,7 +37,7 @@ app.config["CORS_HEADERS"] = "Content-Type"
 app.config.from_object(__name__)
 
 # definitions
-SITE = {"logo": "Stackoptica", "version": "2.0.0"}
+SITE = {"logo": "Depthoptica", "version": "1.0.0"}
 
 OWNER = {
     "name": "Royal Belgian Institute of Natural Sciences",
@@ -111,29 +113,20 @@ def images(id):
 
     encoded_images = []
     for image_id in stack_file["stacked"]:
-        print(image_id)
         image_data = stack_file["stacked"][image_id]["data"]
 
-        with open(
-            f"{directory}/{stack_file['stacked'][image_id]['layers']}", "rb"
-        ) as image_file:
-            layer_bytes = base64.b64encode(image_file.read())
-        try:
-            # file name of stacked image
-            encoded_images.append(
-                {
-                    "name": image_id,
-                    "label": image_data["label"],
-                    "size": {
-                        "width": image_data["width"],
-                        "height": image_data["height"],
-                    },
-                }
-            )
-        except Exception as error:
-            print(f"Error : {error}")
-            continue
-    print(encoded_images)
+
+         # file name of stacked image
+        encoded_images.append(
+            {
+                "name": image_id,
+                "label": image_data["label"],
+                "size": {
+                    "width": image_data["width"],
+                    "height": image_data["height"],
+                },
+            }
+        )
     to_jsonify["images"] = encoded_images
     to_jsonify["thumbnails"] = len(stack_file["thumbnails"]) != 0
 
@@ -156,14 +149,12 @@ def compute_landmark(id, image_id):
     image = stack_file["stacked"][image_id]
     image_data = image["data"]
 
-    
-    with Image.open(f"{directory}/{image['depthmap']}") as im :
-        depth = im.getpixel((round(x),round(y)))
-        print(depth)
+    im = cv2.imread(f"{directory}/{image['depthmap']}", cv2.IMREAD_GRAYSCALE | cv2.IMREAD_ANYDEPTH)
+    depth = im[round(y)][round(x)]
     position = {
             "x": x * image_data["PixelRatio"][0],
             "y": y * image_data["PixelRatio"][1],
-            "z": ((image_data["Zmax"] - image_data["Zmin"]) / 65536 * depth) #65536
+            "z": ((image_data["Zmax"] - image_data["Zmin"]) / (2**(im.itemsize*8)) * depth) #65536
             + image_data["Zmin"],
         }
     
@@ -178,73 +169,99 @@ def compute_profile(id, image_id):
     x2 = float(request.args.get("x2"))
     y2 = float(request.args.get("y2"))
 
-    nbr_steps = round(float(request.args.get("nbr_steps")))
-
-    vector = {
-            "x": x2 - x1,
-            "y": y2 - y1
-          }
-
-    
-
     directory = f"{DATA_FOLDER}/{id}"
     if not os.path.exists(directory):
         abort(404)
     with open(f"{directory}/depth.json", "r") as f:
         stack_file = json.load(f)
 
-    image_data = stack_file["stacked"][image_id]["data"]
-    # z = ((image_data["Zmax"] - image_data["Zmin"]) / 256 * img[x, y]) + image_data["Zmin"] # depthmap
-    # z * image_data["step"] # layers
+    image = stack_file["stacked"][image_id]
+    image_data = image["data"]
+
 
 
     sub_landmarks = []
-
-    with Image.open(f"{directory}/{image_data['depthmap']}") as depth :
-        #depthmap = np.array(depth)
-        #depth1 = depthmap[round(y1)][round(x1)]
-        depth1 = depth.getpixel((round(x1),round(y1)))
-
-        start = {
-            "x": x1 * image_data["PixelRatio"][0],
-            "y": y1 * image_data["PixelRatio"][1],
-            "depth": ((image_data["Zmax"] - image_data["Zmin"]) / 65536 * depth1)
-            + image_data["Zmin"],
-        }
-
-        for i in range(1, nbr_steps+1):
-            next = {"x": x1 + vector["x"] * i / (nbr_steps + 1), "y": y1 + vector["y"] * i / (nbr_steps + 1)}
-
-            #depth_cur = depthmap[round(next['y'])][round(next['x'])]
-            depth_cur = depth.getpixel((round(next['x']),round(next['y'])))
-
-            sub_landmarks.append(
-                {
-                    "x": next['x'] * image_data["PixelRatio"][0],
-                    "y": next['y'] * image_data["PixelRatio"][1],
-                    "depth": ((image_data["Zmax"] - image_data["Zmin"]) / 65536 * depth_cur)
-                    + image_data["Zmin"],
-                }
-            )
-
-
-        #depth2 = depthmap[round(y2)][round(x2)]
-        depth2 = depth.getpixel((round(x2),round(y2)))
-
-        end = {
-            "x": x2 * image_data["PixelRatio"][0],
-            "y": y2 * image_data["PixelRatio"][1],
-            "depth": ((image_data["Zmax"] - image_data["Zmin"]) / 65536 * depth2)
-            + image_data["Zmin"],
-        }
-    
+    im = cv2.imread(f"{directory}/{image['depthmap']}", cv2.IMREAD_GRAYSCALE | cv2.IMREAD_ANYDEPTH)
+    #depthmap = np.array(depth)
+    #depth1 = depthmap[round(y1)][round(x1)]
+    sub_landmarks = wu_line(x1, y1, x2, y2, im)
+    sub_landmarks = [ {
+        "x": i["x"] * image_data["PixelRatio"][0],
+        "y": i["y"]  * image_data["PixelRatio"][1],
+        "z": ((image_data["Zmax"] - image_data["Zmin"]) / (2**(im.itemsize*8)) * i["z"]) + image_data["Zmin"] # 16bits images
+    } for i in sub_landmarks]
     
 
     return jsonify({
-        "start": start,
-        "end" : end,
-        "subLandmarks": sub_landmarks
+        "start": sub_landmarks[0],
+        "end" : sub_landmarks[-1],
+        "subLandmarks": sub_landmarks[1:-1]
     })
+
+def wu_line(x0, y0, x1, y1, heightmap : ImageFile):
+    horizontal = abs(y1 - y0) < abs(x1 - x0) # if x is longer than y
+    
+    inverse = x1 < x0 if horizontal else y1 < y0
+    if inverse:
+        # has to be a positive vector so swap start 
+        # !!! need to inverse list order
+        x0, x1 = x1, x0
+        y0, y1 = y1, y0
+
+    dx = x1 - x0
+    dy = y1 - y0
+
+    distance = dx if horizontal else dy
+    numerator = dy if horizontal else dx
+
+    gradient = numerator/distance if distance != 0 else 1
+
+    list_pixels =  []
+
+    # get integer point before start point
+    ratio_start = int(x0) - x0 if horizontal else int(y0) - y0
+    start_x = int(x0) if horizontal else x0 + gradient*ratio_start
+    start_y = y0 + gradient*ratio_start if horizontal else int(y0)
+    for i in range(0, int(distance)+1):
+        
+        # iterate from int before start point to int after end point
+        x = start_x + i if horizontal else start_x + i*gradient
+        y = start_y + i*gradient if horizontal else start_y + i
+        ix, iy = int(x), int(y)
+        dist = y - iy  if horizontal else x - ix # swap dist if steep
+        depth = getRatioedPixelHeight(ix, iy, 1.0 - dist, heightmap) + getRatioedPixelHeight(ix, iy+1, dist, heightmap)
+        list_pixels.append(
+            {
+                "x": x,
+                "y": y,
+                "z": depth,
+            }
+        )
+    
+    # Handle start point
+    list_pixels[0] = {
+                "x": x0,
+                "y": y0,
+                "z": list_pixels[0]["z"] * (1-abs(ratio_start)) + list_pixels[1]["z"] * abs(ratio_start),
+            }
+    
+    
+    # Handle end point
+    ratio_end = math.ceil(x1) - x1 if horizontal else math.ceil(x1) - y1
+    list_pixels[-1] = {
+                "x": x1,
+                "y": y1,
+                "z": list_pixels[-1]["z"] * (1-abs(ratio_end)) + list_pixels[-2]["z"] * abs(ratio_end),
+            }
+    
+    
+    if inverse:
+        list_pixels.reverse()
+    
+    return list_pixels
+
+def getRatioedPixelHeight(x : int, y : int, ratio : float, heightmap : ImageFile):
+    return heightmap[y][x] * ratio
 
 
 if __name__ == "__main__":

@@ -43,10 +43,6 @@ function resetFactor() {
     selectedImage.value.store.adjustFactor = 1
 }
 
-function updateProfileSteps(steps : string | number, profile : Profile){
-    profile.nbr_steps = math.number(steps)
-}
-
 /*
 function scaleVector(pose : Pose){
     /*
@@ -86,15 +82,13 @@ function scaleVector(pose : Pose){
             </div>
         </div>
         <div class="flex flex-col min-h-48 min-w-full w-fit border">
-            <div v-for="(profile) in selectedImage.store.profiles" class="flex flex-col min-w-full w-fit h-10">
+            <div v-for="(profile, index) in selectedImage.store.profiles" class="flex flex-col min-w-full w-fit h-10">
                 <div class="flex flex-row items-center justify-between space-x-3 px-3 w-full h-full">
                     <div class="flex flex-row items-center justify-start space-x-3">
                         <Label class="flex whitespace-nowrap w-auto">{{ profile.label }}</Label>
                     </div>
                     <div class="flex flex-row items-center justify-end space-x-3">
                         <Label class="flex whitespace-nowrap w-auto">Steps</Label>
-                        <Input type="number" min="0" step="1" max="100" :model-value="profile.nbr_steps" class="flex w-max"
-                            @update:model-value="updateProfileSteps($event, profile)"/>
                         <Label v-show="!profile.edit_profile" class="flex whitespace-nowrap w-auto"
                             @dblclick="profile.edit_profile = true">{{ math.round(((profile.distance) ?
                                 computeDistance(profile.distance) * selectedImage.store.adjustFactor /
@@ -107,6 +101,7 @@ function scaleVector(pose : Pose){
                             @update:model-value="changeScale($event, profile as Profile)" />
                     </div>
                 </div>
+                
                 <Separator class="w-full" />
             </div>
         </div>
