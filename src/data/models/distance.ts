@@ -1,6 +1,6 @@
 import { Landmark } from "@/data/models/landmark"
 import Color from "color"
-import { distance_vector, type Coords3D } from "./coordinates"
+import { distance_vector3D, type Coords3D } from "./coordinates"
 
 export class Distance {
     label: string
@@ -26,7 +26,7 @@ export class Distance {
         }
         let intervals: Coords3D[] = new Array()
         for (let i = 1; i < this.landmarks.length; i++) {
-            intervals.push(distance_vector(this.landmarks[i]!.pose!, this.landmarks[i - 1]!.pose!))
+            intervals.push(distance_vector3D(this.landmarks[i]!.pose!, this.landmarks[i - 1]!.pose!))
         }
         return intervals
     }

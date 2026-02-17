@@ -16,7 +16,7 @@ import base64
 from PIL import Image, ImageFile
 import cv2
 import numpy as np
-import time
+from scipy.ndimage import gaussian_filter1d
 import math
 
 cwd = os.getcwd()
@@ -50,7 +50,6 @@ site_data = {"site": SITE, "owner": OWNER}
 # landing page
 @app.route("/<id>")
 def welcome(id):
-    print(f"id : {id}")
     return render_template("index.html", **site_data)
 
 
@@ -185,17 +184,39 @@ def compute_profile(id, image_id):
     #depthmap = np.array(depth)
     #depth1 = depthmap[round(y1)][round(x1)]
     sub_landmarks = wu_line(x1, y1, x2, y2, im)
+
     sub_landmarks = [ {
         "x": i["x"] * image_data["PixelRatio"][0],
         "y": i["y"]  * image_data["PixelRatio"][1],
         "z": ((image_data["Zmax"] - image_data["Zmin"]) / (2**(im.itemsize*8)) * i["z"]) + image_data["Zmin"] # 16bits images
     } for i in sub_landmarks]
+
+    start = sub_landmarks[0]
+    line_3d = [ {
+        "x": i["x"] - start["x"],
+        "y": i["y"]  - start["y"],
+        "z": i["z"]  - start["z"]
+    } for i in sub_landmarks]
+
+    # Smooth line
+
+    line_2d = np.array([
+        [math.sqrt(point["x"]**2 + point["y"]**2), point["z"]] 
+        for point in line_3d])
     
+    smoothed_array = smooth(line_2d)
+
+
+    graph = [{
+        "x": point[0],
+        "y": point[1]
+    } for point in smoothed_array.tolist()]   
+
 
     return jsonify({
         "start": sub_landmarks[0],
         "end" : sub_landmarks[-1],
-        "subLandmarks": sub_landmarks[1:-1]
+        "subLandmarks": graph
     })
 
 def wu_line(x0, y0, x1, y1, heightmap : ImageFile):
@@ -247,14 +268,13 @@ def wu_line(x0, y0, x1, y1, heightmap : ImageFile):
     
     
     # Handle end point
-    ratio_end = math.ceil(x1) - x1 if horizontal else math.ceil(x1) - y1
+    ratio_end = math.ceil(x1) - x1 if horizontal else math.ceil(y1) - y1
     list_pixels[-1] = {
                 "x": x1,
                 "y": y1,
                 "z": list_pixels[-1]["z"] * (1-abs(ratio_end)) + list_pixels[-2]["z"] * abs(ratio_end),
             }
-    
-    
+
     if inverse:
         list_pixels.reverse()
     
@@ -262,6 +282,24 @@ def wu_line(x0, y0, x1, y1, heightmap : ImageFile):
 
 def getRatioedPixelHeight(x : int, y : int, ratio : float, heightmap : ImageFile):
     return heightmap[y][x] * ratio
+
+def smooth(array):
+    x, y = array.T
+    print(len(x))
+    t = np.linspace(0, 1, len(x))
+    t2 = np.linspace(0, 1, len(x)*10)
+
+    x2 = np.interp(t2, t, x)
+    y2 = np.interp(t2, t, y)
+    sigma = len(x)/10
+    x3 = x2
+    y3 = gaussian_filter1d(y2, sigma)
+
+    x4 = np.interp(t, t2, x3).reshape((-1,1))
+    y4 = np.interp(t, t2, y3).reshape((-1,1))
+
+
+    return np.concatenate((x4,y4),-1)
 
 
 if __name__ == "__main__":

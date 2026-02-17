@@ -24,11 +24,18 @@ export function vectorToString(vector: Vector3D) {
     return `(${vector.x.toFixed(2)}; ${vector.y.toFixed(2)}; ${vector.z.toFixed(2)})`
 }
 
-export function distance_vector(first: Coords3D, second: Coords3D) : Coords3D{
+export function distance_vector3D(first: Coords3D, second: Coords3D) : Coords3D{
     return {
         x: math.abs(second.x - first.x),
         y: math.abs(second.y - first.y),
         z: math.abs(second.z - first.z),
+    }
+}
+
+export function distance_vector2D(first: Coordinates, second: Coordinates) : Coordinates{
+    return {
+        x: math.abs(second.x - first.x),
+        y: math.abs(second.y - first.y),
     }
 }
 

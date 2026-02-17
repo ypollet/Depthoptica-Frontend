@@ -1,18 +1,18 @@
 import { Landmark } from "@/data/models/landmark"
 import Color from "color"
-import { distance_vector, type Coordinates, type Coords3D } from "./coordinates"
+import { distance_vector2D, type Coordinates, type Coords3D } from "./coordinates"
 import { Deque } from "./structures"
 
 export class Profile {
     label: string
     landmarks: Ends
-    sub_landmarks: Coords3D[]
+    sub_landmarks: Coordinates[]
     color: Color
     edit_label: boolean
     edit_profile: boolean
     show: boolean
 
-    constructor(label: string, landmarks: Ends | null = null, sub_landmarks: Coords3D[] | null = null, nbr_steps: number | null = null, color: Color | null = null) {
+    constructor(label: string, landmarks: Ends | null = null, sub_landmarks: Coordinates[] | null = null, nbr_steps: number | null = null, color: Color | null = null) {
         this.label = label
         this.landmarks = landmarks || new Ends
         this.sub_landmarks = sub_landmarks || []
@@ -31,26 +31,30 @@ export class Profile {
         return this.sub_landmarks.map((point) => {
             const dx = point.x - origin.x
             const dy = point.y - origin.y
-            const dz = point.z - origin.z
 
             return {
-                x: Math.sqrt(dx * dx + dy * dy),
-                y: dz,
+                x: dx,
+                y: dy,
             }
         })
     }
 
-    get distance(): Coords3D[] | undefined {
+    get distance(): Coordinates[] | undefined {
         if (!this.landmarks.isFull()) {
             return undefined
         }
-        let intervals: Coords3D[] = []
-        let current : Coords3D = this.landmarks.first!.pose!
-        this.sub_landmarks.forEach((pose) => {
-            intervals.push(distance_vector(current, pose))
-            current = pose
-        })
-        intervals.push(distance_vector(current, this.landmarks.last!.pose!))
+        let intervals: Coordinates[] = []
+
+        let last : Coordinates | null = null
+        this.sub_landmarks.map((point) => {
+            if(last == null){
+                last = point
+                return
+            }
+            intervals.push(distance_vector2D(last, point))
+            last = point
+        });
+        
         return intervals
     }
 

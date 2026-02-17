@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 
 import * as math from "mathjs"
 import { Scale } from "@/lib/utils";
-import {  type Coords3D } from "@/data/models/coordinates";
+import {  type Coordinates, type Coords3D } from "@/data/models/coordinates";
 import { storeToRefs } from "pinia";
 import { RepositoryFactory } from "@/data/repositories/repository_factory";
 import { repositorySettings } from "@/config/appSettings";
@@ -24,9 +24,9 @@ const imagesStore = useImagesStore()
 const { selectedImage } = storeToRefs(imagesStore)
 
 
-function computeDistance(intervals: Coords3D[]): number {
+function computeDistance(intervals: Coordinates[]): number {
     let dist = 0
-    intervals.forEach((interval : Coords3D) => {
+    intervals.forEach((interval : Coordinates) => {
         let squared = math.map(Object.values(interval), math.square)
         let sum = math.sum(squared)
         // can't be a Complex number

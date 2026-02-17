@@ -17,7 +17,7 @@ const imagesStore = useImagesStore()
 const { selectedImage } = storeToRefs(imagesStore)
 
 const chartData = computed(() => {
-    const graph = selectedImage.value.store.selectedProfile?.graph ?? []
+    const graph = selectedImage.value.store.selectedProfile?.sub_landmarks ?? []
 
     return {
         datasets: [
@@ -36,7 +36,7 @@ const chartData = computed(() => {
 
 const chartOptions = computed(() => {
     console.log("computing options")
-    const graph = selectedImage.value.store.selectedProfile?.graph ?? []
+    const graph = selectedImage.value.store.selectedProfile?.sub_landmarks ?? []
     
     const xValues = graph.map((point) => point.x)
     const yValues = graph.map((point) => point.y)
@@ -59,7 +59,7 @@ const chartOptions = computed(() => {
     return {
         responsive: true,
         maintainAspectRatio: true,
-        aspectRatio: xRange / yRange,
+        aspectRatio: xRange / displayedYRange,
         type: "line",
         scales: {
             x: {
@@ -67,8 +67,8 @@ const chartOptions = computed(() => {
                 max: maxX,
             },
             y: {
-                min: minY,
-                max: maxY,
+                min: minY - yPadding,
+                max: maxY + xPadding,
             },
         },
         legend: {
