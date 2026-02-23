@@ -8,6 +8,7 @@ export class Profile {
     landmarks: Ends
     sub_landmarks: Coordinates[]
     color: Color
+    hover_profile : number | undefined
     edit_label: boolean
     edit_profile: boolean
     show: boolean
@@ -18,6 +19,7 @@ export class Profile {
         this.sub_landmarks = sub_landmarks || []
         this.edit_label = false
         this.edit_profile = false
+        this.hover_profile = undefined
         this.show = true
         this.color = color || Color.rgb([Math.floor(Math.random() * 256), Math.floor(Math.random() * 256), Math.floor(Math.random() * 256)])
     }
@@ -28,7 +30,8 @@ export class Profile {
         }
 
         const origin = this.sub_landmarks[0]!
-        return this.sub_landmarks.map((point) => {
+        
+        let graph =  this.sub_landmarks.map((point) => {
             const dx = point.x - origin.x
             const dy = point.y - origin.y
 
@@ -37,6 +40,8 @@ export class Profile {
                 y: dy,
             }
         })
+        console.log(graph[0])
+        return graph
     }
 
     get distance(): Coordinates[] | undefined {

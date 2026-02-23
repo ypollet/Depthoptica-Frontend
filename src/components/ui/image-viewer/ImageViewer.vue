@@ -316,6 +316,19 @@ function drawImage() {
           }
           drawSubLandmark(ctx, marker, profile.color, radius, vector)
         }
+        
+        // Draw hover position if exist
+        if(profile.hover_profile != undefined){
+          let hover = {
+            x: vector.x * profile.hover_profile,
+            y: vector.y * profile.hover_profile
+          }
+          let marker = {
+            x: firstPos.x + hover.x,
+            y: firstPos.y + hover.y
+          }
+          drawSubLandmark(ctx, marker, profile.color, radius*2, vector)
+        }
       }
 
     });

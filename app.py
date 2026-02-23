@@ -203,15 +203,14 @@ def compute_profile(id, image_id):
     line_2d = np.array([
         [math.sqrt(point["x"]**2 + point["y"]**2), point["z"]] 
         for point in line_3d])
-    
+    print(line_2d[0])
     smoothed_array = smooth(line_2d)
 
-
+    start = smoothed_array[0]
     graph = [{
-        "x": point[0],
-        "y": point[1]
+        "x": point[0] - start[0],
+        "y": point[1] - start[1]
     } for point in smoothed_array.tolist()]   
-
 
     return jsonify({
         "start": sub_landmarks[0],
@@ -278,6 +277,7 @@ def wu_line(x0, y0, x1, y1, heightmap : ImageFile):
     if inverse:
         list_pixels.reverse()
     
+    
     return list_pixels
 
 def getRatioedPixelHeight(x : int, y : int, ratio : float, heightmap : ImageFile):
@@ -285,7 +285,6 @@ def getRatioedPixelHeight(x : int, y : int, ratio : float, heightmap : ImageFile
 
 def smooth(array):
     x, y = array.T
-    print(len(x))
     t = np.linspace(0, 1, len(x))
     t2 = np.linspace(0, 1, len(x)*10)
 
