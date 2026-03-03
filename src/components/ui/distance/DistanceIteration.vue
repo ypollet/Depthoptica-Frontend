@@ -1,18 +1,18 @@
 <script setup lang="ts">
-import { useImagesStore, useLandmarksStore } from "@/lib/stores";
+import { useImagesStore } from "@/lib/stores";
 
-import { Landmark } from "@/data/models/landmark";
+import { Landmark  } from "@/data/models/landmark";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from '@/components/ui/input'
 import draggable from "vuedraggable"
 
-import { ref } from "vue";
+import { ref, useTemplateRef } from "vue";
 
 import { X, RefreshCcw, Eye, EyeOff } from "lucide-vue-next";
 import { Distance } from "@/data/models/distance";
-import Separator from "../separator/Separator.vue";
+import { storeToRefs } from "pinia";
 
 const props = defineProps({
     distance: {
@@ -29,13 +29,12 @@ const props = defineProps({
     }
 })
 
-const landmarksStore = useLandmarksStore()
 const imagesStore = useImagesStore()
 
-const scrollSnapType = ref<boolean>(true)
-const landmarksElements = ref<InstanceType<typeof draggable> | null>(null)
-const landmarksScroll = ref<HTMLElement | null>(null)
+const {selectedImage} = storeToRefs(imagesStore)
 
+const scrollSnapType = ref<boolean>(true)
+const input = useTemplateRef('input')
 
 function changeColor(event: Event) {
     let target = event.currentTarget as HTMLButtonElement;
@@ -50,7 +49,7 @@ function changeColor(event: Event) {
 function removeLandmark(id : string){
     props.distance.remove(id)
     if(props.distance.landmarks.length == 0){
-        landmarksStore.distances.splice(props.index, 1)
+        selectedImage.value.store.distances.splice(props.index, 1)
     }
 }
 
@@ -63,11 +62,28 @@ function changeLabelDistance(payload: string | number) {
 }
 
 function deleteDistance() {
-    if(props.index <= landmarksStore.selectedDistanceIndex){
-        landmarksStore.selectedDistanceIndex--;
+    if(props.index <= selectedImage.value.store.selectedDistanceIndex){
+        selectedImage.value.store.selectedDistanceIndex--;
     }
-    landmarksStore.distances.splice(props.index, 1)
+    selectedImage.value.store.distances.splice(props.index, 1)
 }
+
+function showInput(){
+    props.distance.edit_label = props.showLandmarks
+    
+    if(props.distance.edit_label && input.value != null){
+        input.value.focus()
+    }
+}
+
+/*
+function scaleVector(pose : Pose){
+    if(selectedImage.value.pixelRatio != null && selectedImage.value.depthMin != null && selectedImage.value.depthMax != null){
+         return scaleDepthRatio(pose, selectedImage.value.pixelRatio, selectedImage.value.depthMin, selectedImage.value.depthMax)
+    }
+    return {x : pose.x, y: pose.y, z:0}
+}
+*/
 </script>
 
 <template>
@@ -80,12 +96,12 @@ function deleteDistance() {
                         id="hs-color-input" :value="props.distance.getColorHEX()" title="Choose your color"
                         @change="changeColor($event)">
                     <Label v-show="!props.distance.edit_label" class="flex whitespace-nowrap w-36 font-normal text-lg"
-                        @dblclick="props.distance.edit_label = true">{{ props.distance.label }}
+                        @dblclick="showInput()">{{ props.distance.label }}
                     </Label>
-                    <Input v-show="props.distance.edit_label" type="text" :model-value="props.distance.label"
+                    <Input v-show="props.distance.edit_label" ref="input" type="text" :model-value="props.distance.label"
                         class="flex h-auto w-full px-0" @focusout="props.distance.edit_label = false"
                         @keyup.enter="props.distance.edit_label = false"
-                        @update:model-value="changeLabelDistance($event)" />
+                        @update:model-value="changeLabelDistance($event)"/>
                 </div>
                 <div class="flex row justify-end space-x-3">
                     <Button class="relative w-6 h-6 p-0" v-show="props.distance.show" variant="secondary"
@@ -132,9 +148,7 @@ function deleteDistance() {
                                     @update:model-value="changeLabelLandmark($event, landmark)" />
                             </div>
                             <div class="flex items-center h-full w-auto justify-end space-x-3 pr-3">
-                                <Separator orientation="vertical" class="h-full w-0.5" />
-                                <Label class="whitespace-nowrap">{{ landmark.pose.image.label
-                                    }}</Label>
+                                <Label class="whitespace-nowrap">{{ landmark.show_pose }}</Label>
                             </div>
                             <div class="flex items-center justify-end space-x-3">
                                 <Button class="relative w-6 h-6 p-0" variant="destructive"

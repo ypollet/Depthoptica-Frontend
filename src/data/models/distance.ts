@@ -1,7 +1,6 @@
 import { Landmark } from "@/data/models/landmark"
 import Color from "color"
-import * as math from "mathjs"
-import type { Positions } from "./coordinates"
+import { distance_vector3D, type Coords3D } from "./coordinates"
 
 export class Distance {
     label: string
@@ -10,6 +9,7 @@ export class Distance {
     edit_label: boolean
     edit_distance: boolean
     show: boolean
+
 
     constructor(label: string, landmarks: Array<Landmark> | null = null, color: Color | null = null) {
         this.label = label
@@ -20,26 +20,15 @@ export class Distance {
         this.color = color || Color.rgb([Math.floor(Math.random() * 256), Math.floor(Math.random() * 256), Math.floor(Math.random() * 256)])
     }
 
-    get distance(): Positions[] | undefined {
-        if (this.landmarks.length < 2) {
+    get distance(): Coords3D[] | undefined {
+        if (this.landmarks.length < 2 || this.landmarks.some((landmark) => landmark.pose == null)) {
             return undefined
         }
-        let distance: Positions[] = new Array()
+        let intervals: Coords3D[] = new Array()
         for (let i = 1; i < this.landmarks.length; i++) {
-            distance.push({
-                depth: {
-                    x: math.abs(this.landmarks[i].positions.depth.x - this.landmarks[i - 1].positions.depth.x),
-                    y: math.abs(this.landmarks[i].positions.depth.y - this.landmarks[i - 1].positions.depth.y),
-                    z: math.abs(this.landmarks[i].positions.depth.z - this.landmarks[i - 1].positions.depth.z)
-                },
-                layer: {
-                    x: math.abs(this.landmarks[i].positions.layer.x - this.landmarks[i - 1].positions.layer.x),
-                    y: math.abs(this.landmarks[i].positions.layer.y - this.landmarks[i - 1].positions.layer.y),
-                    z: math.abs(this.landmarks[i].positions.layer.z - this.landmarks[i - 1].positions.layer.z)
-                }
-            })
+            intervals.push(distance_vector3D(this.landmarks[i]!.pose!, this.landmarks[i - 1]!.pose!))
         }
-        return distance
+        return intervals
     }
 
     in(landmark: Landmark | string): boolean {
@@ -64,7 +53,7 @@ export class Distance {
         if (color.length < 3) {
             return
         }
-        this.color = Color.rgb(color[0], color[1], color[2])
+        this.color = Color.rgb(color[0]!, color[1]!, color[2]!)
     }
 
     toJSON() {

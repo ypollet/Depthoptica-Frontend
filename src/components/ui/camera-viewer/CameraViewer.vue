@@ -1,43 +1,50 @@
 <script setup lang="ts">
-import { ref } from 'vue';
-
 import { Loader2 } from 'lucide-vue-next';
 
 import { useQuery } from '@tanstack/vue-query'
 
 import { useImagesStore } from '@/lib/stores';
 
-import type { ProjectData, StackImage } from '@/data/models/stack_image'
+import { StackImage, type StackImageData } from '@/data/models/stack_image'
 
 import ImageViewer from '@/components/ui/image-viewer/ImageViewer.vue';
 
 import { RepositoryFactory } from '@/data/repositories/repository_factory'
 import { repositorySettings } from "@/config/appSettings"
 
-import Label from '../label/Label.vue';
+async function getImages(): Promise<Array<StackImage>> {
+  if (imagesStore.images.length > 0) {
+    try {
+      return imagesStore.images as StackImage[]
+    }catch(error){
+      throw error
+    }
+    // reload depthmap and layer
+    
+  }
+  imagesStore.index = 0
+  return repository.getImages(imagesStore.objectPath).then(async (data) => {
+    imagesStore.images = data.images.map((image: StackImageData) => {
+      let stack_image = StackImage.fromData(image)
+      
+      return stack_image
+    })
+    return imagesStore.images as StackImage[]
+  })
+}
 
-console.log("CameraViewer")
 
-const imageStore = useImagesStore()
+const repository = RepositoryFactory.get(repositorySettings.type)
+
+
+
+const imagesStore = useImagesStore()
 
 const { isPending, isError, data, error } = useQuery({
   queryKey: ['all_images'],
   queryFn: () => getImages(),
 })
 
-const repository = RepositoryFactory.get(repositorySettings.type)
-
-async function getImages(): Promise<Array<StackImage>> {
-  if (imageStore.images.length > 0) {
-
-    return imageStore.images as Array<StackImage>
-  }
-  return repository.getImages(imageStore.objectPath).then((data) => {
-    imageStore.images = data.images
-    imageStore.index = 0
-    return data.images
-  })
-}
 </script>
 <template>
   <div class="w-full h-full border flex justify-center items-center">
@@ -48,9 +55,6 @@ async function getImages(): Promise<Array<StackImage>> {
       <div class="text-red-600">{{ error }}</div>
     </div>
     <div v-if="data" class="w-full h-full flex flex-col items-center">
-      <div class="flex grow flex-row w-full justify-start">
-        <Label class="border p-2">{{ imageStore.selectedImage!.label }}</Label>
-      </div>
       <ImageViewer class="object-fit" aspect-ratio="auto" draggable="false" />
     </div>
   </div>

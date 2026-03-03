@@ -1,12 +1,11 @@
 import type { ProjectData } from "@/data/models/stack_image";
-import type { Pose } from "@/data/models/landmark";
-import type { Positions } from "@/data/models/coordinates";
+import type { Coordinates, Coords3D } from "../models/coordinates";
+import type { Profile, ProfileLandmarks } from "../models/profile";
 
 export interface Repository {
     getImages : (objectPath:string) => Promise<ProjectData>;
     getFullImage : (objectPath:string, imageName : string) => string;
     getThumbnail : (objectPath:string, imageName : string) => string;
-    getDepthmap : (objectPath:string, imageName : string) => string;
-    getLayers : (objectPath:string, imageName : string) => string;
-    computeLandmarkPosition : (objectPath:string, pose : Pose) => Promise<Positions>;
+    computeLandmark : (objectPath: string, imageName : string, pose : Coordinates) => Promise<Coords3D>;
+    computeProfile : (objectPath: string, imageName : string, profile : Profile) => Promise<ProfileLandmarks | undefined>;
 }

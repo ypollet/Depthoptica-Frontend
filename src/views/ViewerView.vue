@@ -2,26 +2,24 @@
 import Menu from "@/components/Menu.vue";
 import { Separator } from "@/components/ui/separator";
 import { Sidebar } from "@/components/ui/sidebar";
-import { useSettingsStore, useImagesStore, useLandmarksStore } from "@/lib/stores";
+import { useSettingsStore, useImagesStore } from "@/lib/stores";
 import { CameraViewer } from "@/components/ui/camera-viewer"
 
 const settingsStore = useSettingsStore()
-const landmarksStore = useLandmarksStore()
 
-const imageStore = useImagesStore()
+const imagesStore = useImagesStore()
+
 
 let urlParams = new URLSearchParams(window.location.search);
 
 if(urlParams.has('series')){
   let seriesId = urlParams.get('series') as string
-  if(imageStore.objectPath != seriesId){
-    landmarksStore.$reset()
-    imageStore.setPath(seriesId)
+  if(imagesStore.objectPath != seriesId){
+    imagesStore.setPath(seriesId)
   }
 }
 else{
-  landmarksStore.$reset()
-  imageStore.$reset()
+  imagesStore.$reset()
 }
 
 </script>
@@ -32,7 +30,7 @@ else{
     <Separator></Separator>
     <div class="h-full flex"
     :class="settingsStore.isLeft ? 'flex-row' : 'flex-row-reverse'">
-      <div class="rest_height overflow-auto sidebar rounded-md border p-4">
+      <div class="rest_height overflow-auto sidebar border p-4">
         <Sidebar />
       </div>
 

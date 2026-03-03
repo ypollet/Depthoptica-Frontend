@@ -1,9 +1,9 @@
 import type { Repository } from "./repository";
-import type { ProjectData, StackImage } from "../models/stack_image";
+import  { type ProjectData } from "../models/stack_image";
 
 import type { DataProvider } from "../providers/providers";
-import type { Positions } from "../models/coordinates";
-import type { Pose } from "../models/landmark";
+import type { Coordinates, Coords3D } from "../models/coordinates";
+import type { Profile, ProfileLandmarks } from "../models/profile";
 
 export class DataRepository implements Repository {
     provider: DataProvider;
@@ -11,32 +11,15 @@ export class DataRepository implements Repository {
     constructor(provider: DataProvider) {
         this.provider = provider
     }
-    computeLandmarkPosition(objectPath: string, pose: Pose) : Promise<Positions> {
-        return this.provider.computeLandmarkPosition(objectPath, pose).then((rest) => {
-            return rest.data as Positions
-        })
-    }
 
     async getImages(objectPath: string): Promise<ProjectData> {
-        console.log("Repo images")
         return this.provider.getImages(objectPath).then((res) => {
-            console.log("received images")
             let data = res.data as ProjectData
-            console.log(res.data)
             data.images.forEach((image) => {
-                console.log(image)
                 image.image = this.getFullImage(objectPath, image.name)
                 if(data.thumbnails){
                     image.thumbnail = this.getThumbnail(objectPath, image.name)
-                }
-                if(image.depthmap != undefined){
-                    console.log("get depthmap")
-                    image.depthmap = this.getDepthmap(objectPath, image.name)
-                }
-                if(image.layers != undefined){
-                    console.log("get layers")
-                    image.layers = this.getLayers(objectPath, image.name)
-                }
+                }               
             })
 
             return data
@@ -51,11 +34,19 @@ export class DataRepository implements Repository {
         return this.provider.getThumbnail(objectPath, imageName)
     }
 
-    getDepthmap(objectPath: string, imageName: string): string {
-        return this.provider.getDepthmap(objectPath, imageName)
+    async computeLandmark(objectPath: string, imageName : string, pose : Coordinates): Promise<Coords3D> {
+        return this.provider.computeLandmark(objectPath, imageName, pose).then((res) => {
+            return res.data as Coords3D
+        })
     }
 
-    getLayers(objectPath: string, imageName: string): string {
-        return this.provider.getLayers(objectPath, imageName)
+    async computeProfile(objectPath: string, imageName : string, profile : Profile): Promise<ProfileLandmarks | undefined> {
+        if(!profile.landmarks.isFull()){
+            return undefined
+        }
+        return this.provider.computeProfile(objectPath, imageName, profile.landmarks.first!.pos, profile.landmarks.last!.pos, profile.edgeThreshold).then((res) => {
+            return res.data as ProfileLandmarks
+        })
     }
+
 }

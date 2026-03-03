@@ -1,8 +1,8 @@
-import type { Matrix } from "mathjs";
 import type { DataProvider } from "./providers";
 
 import axios, { type AxiosResponse } from "axios";
-import type { Pose } from "../models/landmark";
+import type { Coordinates } from "../models/coordinates";
+import type { Profile } from "../models/profile";
 
 export class WebProvider implements DataProvider {
     server: string;
@@ -26,18 +26,13 @@ export class WebProvider implements DataProvider {
         return path
     }
 
-    getDepthmap(objectPath: string, imageName : string): string {
-        const path = this.server + "/" + objectPath + '/' + imageName + "/depthmap"
-        return path
+    async computeLandmark(objectPath: string, imageName : string, pose : Coordinates): Promise<AxiosResponse> {
+        const path = this.server + "/" + objectPath + '/' + imageName + "/position?x=" + pose.x + "&y=" + pose.y
+        return axios.get(path)
     }
 
-    getLayers(objectPath: string, imageName : string): string {
-        const path = this.server + "/" + objectPath + '/' + imageName + "/layers"
-        return path
-    }
-
-    async computeLandmarkPosition(objectPath: string, pose : Pose): Promise<AxiosResponse> {
-        const path = this.server + "/" + objectPath + "/" + pose.image.name + '/position?x=' + pose.marker.x + "&y=" + pose.marker.y + "&depth=" + pose.depth + "&layer=" + pose.layer;
+    async computeProfile(objectPath: string, imageName : string, start : Coordinates, end : Coordinates, edgeThreshold : string | undefined = undefined): Promise<AxiosResponse> {
+        const path = this.server + "/" + objectPath + '/' + imageName + "/profile?x1=" + start.x + "&y1=" + start.y + "&x2=" + end.x + "&y2=" + end.y + "&threshold=" + edgeThreshold
         return axios.get(path)
     }
 }
