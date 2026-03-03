@@ -25,7 +25,6 @@ const focus = () => {
   nextTick(() => {
     if (input.value != null) { input.value.focus() }
   })
-
 }
 
 defineExpose({

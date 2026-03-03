@@ -37,7 +37,8 @@ export const useImagesStore = defineStore('images', {
   state: () => ({
     objectPath: "",
     index: 0,
-    images: new Array<StackImage>()
+    images: new Array<StackImage>(),
+    zoomRect: {top: 0, left: 0, width: 0, height:0}
   }),
   getters: {
     selectedImage: (state) => (state.index >= 0 && state.index < state.images.length) ? state.images[state.index]! as StackImage : DEFAULT_IMG
@@ -88,86 +89,6 @@ export const useImagesStore = defineStore('images', {
   }
 })
 
-/*
-export const useLandmarksStore = defineStore('landmarks', {
-  state: () => (
-    {
-      landmarks: Array<Landmark>(),
-      distances: Array<Distance>(),
-      profiles: Array<Profile>(),
-      adjustFactor: 1,
-      scale: "mm",
-      tab: "landmarks",
-      selectedDistanceIndex: -1,
-      selectedProfileIndex: -1
-    }
-  ),
-  getters: {
-    distanceIndexes: (state) => new Map(state.distances.map((distance, index) => [distance.label, index])),
-    selectedDistance: (state) => (state.selectedDistanceIndex >= 0 && state.selectedDistanceIndex < state.distances.length) ? state.distances[state.selectedDistanceIndex] as Distance : null,
-    profileIndexes: (state) => new Map(state.profiles.map((profile, index) => [profile.label, index])),
-    selectedProfile: (state) => (state.selectedProfileIndex >= 0 && state.selectedProfileIndex < state.profiles.length) ? state.profiles[state.selectedProfileIndex] as Profile : null
-
-  },
-  actions: {
-    generateID() {
-      let check: boolean = false
-      let id: string = ""
-      while (!check) {
-        id = (Math.random() + 1).toString(36).substring(2);
-        this.distances.forEach(distance => {
-          if (distance.landmarks.filter(e => e.equals(id)).length == 0) {
-            check = true
-          }
-        })
-        if (this.landmarks.filter(e => e.equals(id)).length == 0) {
-          check = true
-        }
-        this.profiles.forEach(profile => {
-          profile.landmarks.forEach(e => {
-            if(e.equals(id)){
-              check = true
-            }
-          })
-        })
-      }
-      return id;
-    },
-  },
-  persist: {
-    storage: sessionStorage,
-    key: 'landmarks',
-    afterHydrate: (ctx: PiniaPluginContext) => {
-      // restore landmarks
-      let landmarks = new Array<Landmark>()
-      ctx.store.$state.landmarks.forEach((jsonObject: Landmark) => {
-        let landmark = new Landmark(jsonObject.id, jsonObject.label, jsonObject.pose, Color(jsonObject.color))
-        landmarks.push(landmark)
-      })
-      ctx.store.$state.landmarks = landmarks
-
-      let distances = new Array<Distance>()
-      ctx.store.$state.distances.forEach((jsonObject: Distance) => {
-        let landmarks = jsonObject.landmarks.map((x: Landmark) => new Landmark(x.id, x.label, x.pose, Color(x.color)))
-        let distance = new Distance(jsonObject.label, landmarks, Color(jsonObject.color))
-        distances.push(distance)
-      })
-      ctx.store.$state.distances = distances
-
-      let profiles = new Array<Profile>()
-      ctx.store.$state.profiles.forEach((jsonObject: ProfileObject) => {
-        let profile = new Profile(jsonObject.label, Ends.fromJSON(jsonObject.landmarks), jsonObject.nbr_steps, Color(jsonObject.color))
-        profiles.push(profile)
-      })
-      ctx.store.$state.profiles = profiles
-
-    },
-
-  }
-})
-
-*/
-
 export type LandmarkInfo = {
   landmarks: Array<Landmark>,
   distances: Array<Distance>,
@@ -183,9 +104,9 @@ export type LandmarkInfo = {
 export type ProfileObject = {
   label: string
   landmarks: EndsObject
-  nbr_steps: number,
-  sub_landmarks: Array<Coords3D>,
-  color: string
+  subLandmarks: Array<Coords3D>,
+  edgeThreshold?: string,
+  color?: string
 }
 
 

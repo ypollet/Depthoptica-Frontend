@@ -113,9 +113,12 @@ def images(id):
     encoded_images = []
     for image_id in stack_file["stacked"]:
         image_data = stack_file["stacked"][image_id]["data"]
+        try :
+            image_threshold = stack_file["stacked"][image_id]["edges"]["threshold"]
+        except:
+            image_threshold = None
 
-
-         # file name of stacked image
+        # file name of stacked image
         encoded_images.append(
             {
                 "name": image_id,
@@ -124,6 +127,7 @@ def images(id):
                     "width": image_data["width"],
                     "height": image_data["height"],
                 },
+                "edgeThresholds": list(image_threshold.keys()) if image_threshold is not None else None
             }
         )
     to_jsonify["images"] = encoded_images
@@ -168,6 +172,8 @@ def compute_profile(id, image_id):
     x2 = float(request.args.get("x2"))
     y2 = float(request.args.get("y2"))
 
+    threshold = request.args.get("threshold") or "" # String or None
+
     directory = f"{DATA_FOLDER}/{id}"
     if not os.path.exists(directory):
         abort(404)
@@ -179,46 +185,46 @@ def compute_profile(id, image_id):
 
 
 
-    sub_landmarks = []
+    subLandmarks = []
     im = cv2.imread(f"{directory}/{image['depthmap']}", cv2.IMREAD_GRAYSCALE | cv2.IMREAD_ANYDEPTH)
-    #depthmap = np.array(depth)
-    #depth1 = depthmap[round(y1)][round(x1)]
-    sub_landmarks = wu_line(x1, y1, x2, y2, im)
+    edges = cv2.imread(f"{directory}/{image['edges']["image"]}", cv2.IMREAD_GRAYSCALE) if 'edges' in image else None
+    edge_threshold = image['edges']["threshold"][threshold] if ('edges' in image and threshold in image['edges']["threshold"]) else 0
+    print(edge_threshold)
+    subLandmarks, distance = wu_line(x1, y1, x2, y2, im, edges, edge_threshold)
 
-    sub_landmarks = [ {
+    subLandmarks = [ {
         "x": i["x"] * image_data["PixelRatio"][0],
         "y": i["y"]  * image_data["PixelRatio"][1],
         "z": ((image_data["Zmax"] - image_data["Zmin"]) / (2**(im.itemsize*8)) * i["z"]) + image_data["Zmin"] # 16bits images
-    } for i in sub_landmarks]
+    } for i in subLandmarks]
 
-    start = sub_landmarks[0]
+    start = subLandmarks[0]
     line_3d = [ {
         "x": i["x"] - start["x"],
-        "y": i["y"]  - start["y"],
-        "z": i["z"]  - start["z"]
-    } for i in sub_landmarks]
+        "y": i["y"] - start["y"],
+        "z": i["z"]
+    } for i in subLandmarks]
 
     # Smooth line
 
     line_2d = np.array([
         [math.sqrt(point["x"]**2 + point["y"]**2), point["z"]] 
         for point in line_3d])
-    print(line_2d[0])
-    smoothed_array = smooth(line_2d)
+    
+    smoothed_array = smooth(line_2d, distance)
 
-    start = smoothed_array[0]
     graph = [{
-        "x": point[0] - start[0],
-        "y": point[1] - start[1]
+        "x": point[0],
+        "y": point[1]
     } for point in smoothed_array.tolist()]   
 
     return jsonify({
-        "start": sub_landmarks[0],
-        "end" : sub_landmarks[-1],
+        "start": subLandmarks[0],
+        "end" : subLandmarks[-1],
         "subLandmarks": graph
     })
 
-def wu_line(x0, y0, x1, y1, heightmap : ImageFile):
+def wu_line(x0, y0, x1, y1, heightmap : np.ndarray, edges : np.ndarray | None, threshold = 0):
     horizontal = abs(y1 - y0) < abs(x1 - x0) # if x is longer than y
     
     inverse = x1 < x0 if horizontal else y1 < y0
@@ -249,15 +255,16 @@ def wu_line(x0, y0, x1, y1, heightmap : ImageFile):
         y = start_y + i*gradient if horizontal else start_y + i
         ix, iy = int(x), int(y)
         dist = y - iy  if horizontal else x - ix # swap dist if steep
-        depth = getRatioedPixelHeight(ix, iy, 1.0 - dist, heightmap) + getRatioedPixelHeight(ix, iy+1, dist, heightmap)
-        list_pixels.append(
-            {
-                "x": x,
-                "y": y,
-                "z": depth,
-            }
+        depth = getRatioedPixelHeight(ix, iy, 1.0 - dist, heightmap) + getRatioedPixelHeight(ix, iy+1, dist, heightmap) if horizontal else getRatioedPixelHeight(ix, iy, 1.0 - dist, heightmap) + getRatioedPixelHeight(ix+1, iy, dist, heightmap)
+        isEdge = edges[iy,ix] >= threshold if edges is not None else True
+        if isEdge:
+            list_pixels.append(
+                {
+                    "x": x,
+                    "y": y,
+                    "z": depth,
+                }
         )
-    
     # Handle start point
     list_pixels[0] = {
                 "x": x0,
@@ -278,24 +285,25 @@ def wu_line(x0, y0, x1, y1, heightmap : ImageFile):
         list_pixels.reverse()
     
     
-    return list_pixels
+    return list_pixels, distance
 
-def getRatioedPixelHeight(x : int, y : int, ratio : float, heightmap : ImageFile):
-    return heightmap[y][x] * ratio
+def getRatioedPixelHeight(x : int, y : int, ratio : float, heightmap : np.ndarray):
+    return heightmap[y,x] * ratio
 
-def smooth(array):
+def smooth(array, distance : float):
     x, y = array.T
     t = np.linspace(0, 1, len(x))
-    t2 = np.linspace(0, 1, len(x)*10)
+    t2 = np.linspace(0, 1, int(distance)*10)
+    t3 = np.linspace(0, 1, 100)
 
     x2 = np.interp(t2, t, x)
     y2 = np.interp(t2, t, y)
-    sigma = len(x)/10
+    sigma = int(distance)/10
     x3 = x2
     y3 = gaussian_filter1d(y2, sigma)
 
-    x4 = np.interp(t, t2, x3).reshape((-1,1))
-    y4 = np.interp(t, t2, y3).reshape((-1,1))
+    x4 = np.interp(t3, t2, x3).reshape((-1,1))
+    y4 = np.interp(t3, t2, y3).reshape((-1,1))
 
 
     return np.concatenate((x4,y4),-1)

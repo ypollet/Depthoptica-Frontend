@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, nextTick, type HTMLAttributes, watch,  useTemplateRef, computed } from 'vue'
+import { ref, onMounted, nextTick, type HTMLAttributes, watch, useTemplateRef, computed } from 'vue'
 import { cn, ZOOM_MAX, ZOOM_MIN, DOT_RADIUS, SPACE_TARGET } from '@/lib/utils'
 import { type Coordinates } from "@/data/models/coordinates"
 import { Landmark } from "@/data/models/landmark"
@@ -20,32 +20,37 @@ const imagesStore = useImagesStore()
 
 const { selectedImage } = storeToRefs(imagesStore)
 
-const landmarks = computed(() => selectedImage.value.store.landmarks)
-
 const props = defineProps<{
   class?: HTMLAttributes['class']
 }>()
 
 watch(selectedImage, () => {
-      base_image.value.src = imagesStore.selectedImage.thumbnail || imagesStore.selectedImage.image
-      base_image.value.alt = (imagesStore.selectedImage.thumbnail) ? 'Thumbnail of ' + imagesStore.selectedImage.name : imagesStore.selectedImage.name
-      if (imagesStore.selectedImage.thumbnail) {
-        base_image.value.onload = (ev: Event) => loaded()
-      } else {
-        base_image.value.onload = (ev: Event) => {
-          if (imagesStore.selectedImage.camera.zoom <= 0) {
-            screenFit()
-          }
-          update()
-        }
+  base_image.value.src = imagesStore.selectedImage.thumbnail || imagesStore.selectedImage.image
+  base_image.value.alt = (imagesStore.selectedImage.thumbnail) ? 'Thumbnail of ' + imagesStore.selectedImage.name : imagesStore.selectedImage.name
+  if (imagesStore.selectedImage.thumbnail) {
+    base_image.value.onload = (ev: Event) => loaded()
+  } else {
+    base_image.value.onload = (ev: Event) => {
+      if (imagesStore.selectedImage.camera.zoom <= 0) {
+        screenFit()
       }
+      update()
+    }
+  }
 })
-
+/*
 watch(
-  selectedImage,
+  () => selectedImage.value.camera,
   () => {
     update()
-    
+
+  }, { deep: true }
+)
+*/
+watch(
+  () => selectedImage,
+  () => {
+    update()
   }, { deep: true }
 )
 
@@ -288,6 +293,7 @@ function drawImage() {
         let lastPos: Coordinates = last.pos
 
 
+
         // stroke the last point
 
         if (last.equals(landmarkDragged.value)) {
@@ -303,12 +309,17 @@ function drawImage() {
         }
         else {
           // Marker is defined and landmarkDragged not equals landmark
-          drawMarker(ctx, last, radius)
-        }
-        let vector = {
+          let vector = {
             x: lastPos.x - firstPos.x,
             y: lastPos.y - firstPos.y
           }
+          drawLastProfile(ctx, last, radius, vector)
+        }
+        let vector = {
+          x: lastPos.x - firstPos.x,
+          y: lastPos.y - firstPos.y
+        }
+
         for (let i = 1; i <= 20; i++) {
           let marker = {
             x: firstPos.x + vector.x * i / (20 + 1),
@@ -316,9 +327,9 @@ function drawImage() {
           }
           drawSubLandmark(ctx, marker, profile.color, radius, vector)
         }
-        
+
         // Draw hover position if exist
-        if(profile.hover_profile != undefined){
+        if (profile.hover_profile != undefined) {
           let hover = {
             x: vector.x * profile.hover_profile,
             y: vector.y * profile.hover_profile
@@ -327,7 +338,7 @@ function drawImage() {
             x: firstPos.x + hover.x,
             y: firstPos.y + hover.y
           }
-          drawSubLandmark(ctx, marker, profile.color, radius*2, vector)
+          drawSubLandmark(ctx, marker, profile.color, radius * 4, vector)
         }
       }
 
@@ -412,7 +423,37 @@ function drawMarker(ctx: CanvasRenderingContext2D, landmark: Landmark, radius: n
   ctx.closePath()
 }
 
-function drawSubLandmark(ctx: CanvasRenderingContext2D, coord: Coordinates, color: Color, size: number, vector : Coordinates) {
+function drawLastProfile(ctx: CanvasRenderingContext2D, landmark: Landmark, radius: number, vector: Coordinates) {
+  let ratio = getRatio()
+  let marker = {
+    x: landmark.pos.x * ratio.width + shiftCanvas.value.x,
+    y: landmark.pos.y * ratio.height + shiftCanvas.value.y
+  }
+
+  // Calculate the angle of the vector
+  const angle = Math.atan2(vector.y, vector.x);
+  
+  // Equilateral triangle vertices (radius is the circumradius)
+  const triangleRadius = radius * 2;
+  const vertices : Coordinates[] = [0, 2 * Math.PI / 3, 4 * Math.PI / 3].map(a => ({
+    x: marker.x + triangleRadius * Math.cos(a + angle),
+    y: marker.y + triangleRadius * Math.sin(a + angle)
+  }));
+
+  ctx.beginPath();
+  ctx.moveTo(vertices[0]!.x, vertices[0]!.y);
+  ctx.lineTo(vertices[1]!.x, vertices[1]!.y);
+  ctx.lineTo(vertices[2]!.x, vertices[2]!.y);
+  ctx.lineTo(vertices[0]!.x, vertices[0]!.y);
+  ctx.fillStyle = landmark.getColorHEX()
+  ctx.fill();
+  ctx.lineWidth = radius / 2
+  ctx.strokeStyle = "black";
+  ctx.stroke();
+  ctx.closePath()
+}
+
+function drawSubLandmark(ctx: CanvasRenderingContext2D, coord: Coordinates, color: Color, size: number, vector: Coordinates) {
   let ratio = getRatio()
   let marker = {
     x: coord.x * ratio.width + shiftCanvas.value.x,
@@ -428,17 +469,17 @@ function drawSubLandmark(ctx: CanvasRenderingContext2D, coord: Coordinates, colo
   ctx.moveTo(marker.x - perpVectorScaled.x, marker.y - perpVectorScaled.y)
   ctx.lineTo(marker.x + perpVectorScaled.x, marker.y + perpVectorScaled.y)
   ctx.strokeStyle = color.hex()
-  ctx.lineWidth= size/4
+  ctx.lineWidth = size / 4
   ctx.stroke();
   ctx.closePath()
 }
 
-function getPerpOfLine(vector : Coordinates, size : number) : Coordinates{
-    const len = Math.sqrt(vector.x * vector.x + vector.y * vector.y);  // length of line
-    return {
-      x: -(vector.y * size/len),
-      y: (vector.x * size/len)
-    }; // return the perpendicular vector at a certain size
+function getPerpOfLine(vector: Coordinates, size: number): Coordinates {
+  const len = Math.sqrt(vector.x * vector.x + vector.y * vector.y);  // length of line
+  return {
+    x: -(vector.y * size / len),
+    y: (vector.x * size / len)
+  }; // return the perpendicular vector at a certain size
 }
 
 function posCircle(center: Coordinates, angle: number, radius: number, translate: Coordinates = { x: 0, y: 0 }): Coordinates {
@@ -455,6 +496,25 @@ function update() {
 
     //draw Image
     drawImage()
+
+    const svgRect = canvas.value!.getBoundingClientRect();
+
+    let topLeft = getPos({ x: svgRect.left, y: svgRect.top })
+    topLeft = {
+      x: Math.max(0, topLeft.x),
+      y: Math.max(0, topLeft.y)
+    }
+    let shift = {
+      x: Math.max(0, (canvas.value.width - imagesStore.selectedImage.size.width * imagesStore.selectedImage.camera.zoom)) / imagesStore.selectedImage.camera.zoom,
+      y: Math.max(0, (canvas.value.height - imagesStore.selectedImage.size.height * imagesStore.selectedImage.camera.zoom)) / imagesStore.selectedImage.camera.zoom
+    }
+
+    imagesStore.zoomRect = {
+      top: topLeft.y,
+      left: topLeft.x,
+      width: canvas.value.width / imagesStore.selectedImage.camera.zoom - shift.x,
+      height: canvas.value.height / imagesStore.selectedImage.camera.zoom - shift.y,
+    }
   }
 }
 
@@ -513,9 +573,9 @@ function updateZoom(zoomDelta: number) {
 
 
 function zoomWithWheel(event: WheelEvent) {
-  let oldZoom =  imagesStore.selectedImage.camera.zoom
+  let oldZoom = imagesStore.selectedImage.camera.zoom
   updateZoom(Math.sign(-event.deltaY))
-  let deltaZoom =  imagesStore.selectedImage.camera.zoom / oldZoom
+  let deltaZoom = imagesStore.selectedImage.camera.zoom / oldZoom
 
   //get pos mouse in canvas
   const svgRect = canvas.value!.getBoundingClientRect();
@@ -591,7 +651,7 @@ function mousemove(event: MouseEvent) {
     }
     else {
       let pos = getPos(event)
-      if(!onImage(pos)){
+      if (!onImage(pos)) {
         pos = {
           x: max(0, min(imagesStore.selectedImage.size.width, pos.x)),
           y: max(0, min(imagesStore.selectedImage.size.height, pos.y))
@@ -610,28 +670,25 @@ function stopDrag(event: MouseEvent) {
   if (landmarkDragged.value != null) {
     //update pos of landmark
     let pos = getPos(event)
-    if(!onImage(pos)){
+    if (!onImage(pos)) {
       pos = {
         x: max(0, min(imagesStore.selectedImage.size.width, pos.x)),
         y: max(0, min(imagesStore.selectedImage.size.height, pos.y))
       }
     }
     let landmark = landmarkDragged.value
-    landmark.pos = pos 
-    if(profileDragged.value != null){
+    landmark.pos = pos
+    if (profileDragged.value != null) {
       let profile = profileDragged.value as Profile
-      repository.computeLandmark(imagesStore.objectPath, imagesStore.selectedImage.name, pos).then((pose) => {
-        landmark.setPose(pose)
-        repository.computeProfile(imagesStore.objectPath, imagesStore.selectedImage.name, profile).then((profileLandmarks) => {
-          if(profileLandmarks == undefined){
-            return;
-          }
-            profile.landmarks.first!.pose = profileLandmarks.start
-            profile.sub_landmarks = profileLandmarks.subLandmarks
-            profile.landmarks.last!.pose = profileLandmarks.end
-        })
+      repository.computeProfile(imagesStore.objectPath, imagesStore.selectedImage.name, profile).then((profileLandmarks) => {
+        if (profileLandmarks == undefined) {
+          return;
+        }
+        profile.landmarks.first!.pose = profileLandmarks.start
+        profile.subLandmarks = profileLandmarks.subLandmarks
+        profile.landmarks.last!.pose = profileLandmarks.end
       })
-    }else{
+    } else {
       repository.computeLandmark(imagesStore.objectPath, imagesStore.selectedImage.name, pos).then((pose) => {
         landmark.setPose(pose)
       })
@@ -676,17 +733,17 @@ function checkPointCircle(pos: Coordinates): Landmark | null {
     }
     profile.landmarks.forEach((landmark) => {
       landmarkClicked = checkDragLandmark(pos, landmark) || landmarkClicked
-      if(landmark.equals(landmarkClicked)){
+      if (landmark.equals(landmarkClicked)) {
         profileDragged.value = profile
       }
-      
+
     })
   })
   return landmarkClicked
 }
 
 function checkDragLandmark(pos: Coordinates, landmark: Landmark): Landmark | null {
-  if (pointInsideCircle(landmark.pos, pos, DOT_RADIUS /  imagesStore.selectedImage.camera.zoom)) {
+  if (pointInsideCircle(landmark.pos, pos, DOT_RADIUS / imagesStore.selectedImage.camera.zoom)) {
     return landmark
   }
   return null;
@@ -721,12 +778,12 @@ async function addDistance(pos: Coordinates) {
 async function addLandmarkToProfile(pos: Coordinates, profile: Profile) {
   let landmark = createLandmark(pos, profile.color)
   profile.addLandmark(await landmark)
-  repository.computeProfile(imagesStore.objectPath, selectedImage.value.name, profile).then((profileLandmarks :  ProfileLandmarks | undefined) => {
-    if(profileLandmarks == undefined){
+  repository.computeProfile(imagesStore.objectPath, selectedImage.value.name, profile).then((profileLandmarks: ProfileLandmarks | undefined) => {
+    if (profileLandmarks == undefined) {
       return;
     }
     profile.landmarks.first!.pose = profileLandmarks.start
-    profile.sub_landmarks = profileLandmarks.subLandmarks
+    profile.subLandmarks = profileLandmarks.subLandmarks
     profile.landmarks.last!.pose = profileLandmarks.end
   })
 }
@@ -744,7 +801,7 @@ async function createLandmark(pos: Coordinates, color: Color | undefined = undef
     return pose
   })
 
-  let landmark =  new Landmark(id, id, pos, pose, color)
+  let landmark = new Landmark(id, id, pos, pose, color)
   return landmark
 }
 

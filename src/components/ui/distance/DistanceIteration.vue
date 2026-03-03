@@ -8,11 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Input } from '@/components/ui/input'
 import draggable from "vuedraggable"
 
-import { ref } from "vue";
+import { ref, useTemplateRef } from "vue";
 
 import { X, RefreshCcw, Eye, EyeOff } from "lucide-vue-next";
 import { Distance } from "@/data/models/distance";
-import { vectorToString } from "@/data/models/coordinates";
 import { storeToRefs } from "pinia";
 
 const props = defineProps({
@@ -35,9 +34,7 @@ const imagesStore = useImagesStore()
 const {selectedImage} = storeToRefs(imagesStore)
 
 const scrollSnapType = ref<boolean>(true)
-const landmarksElements = ref<InstanceType<typeof draggable> | null>(null)
-const landmarksScroll = ref<HTMLElement | null>(null)
-const input = ref<InstanceType<typeof Input> | null>(null)
+const input = useTemplateRef('input')
 
 function changeColor(event: Event) {
     let target = event.currentTarget as HTMLButtonElement;
@@ -73,7 +70,7 @@ function deleteDistance() {
 
 function showInput(){
     props.distance.edit_label = props.showLandmarks
-
+    
     if(props.distance.edit_label && input.value != null){
         input.value.focus()
     }

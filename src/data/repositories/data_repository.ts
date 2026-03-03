@@ -15,7 +15,6 @@ export class DataRepository implements Repository {
     async getImages(objectPath: string): Promise<ProjectData> {
         return this.provider.getImages(objectPath).then((res) => {
             let data = res.data as ProjectData
-            console.log(data)
             data.images.forEach((image) => {
                 image.image = this.getFullImage(objectPath, image.name)
                 if(data.thumbnails){
@@ -45,7 +44,7 @@ export class DataRepository implements Repository {
         if(!profile.landmarks.isFull()){
             return undefined
         }
-        return this.provider.computeProfile(objectPath, imageName, profile.landmarks.first!.pos, profile.landmarks.last!.pos).then((res) => {
+        return this.provider.computeProfile(objectPath, imageName, profile.landmarks.first!.pos, profile.landmarks.last!.pos, profile.edgeThreshold).then((res) => {
             return res.data as ProfileLandmarks
         })
     }

@@ -9,8 +9,8 @@ import { Input } from '@/components/ui/input'
 
 import { X, RefreshCcw, Eye, EyeOff } from "lucide-vue-next";
 import { Profile } from "@/data/models/profile";
-import { vectorToString } from "@/data/models/coordinates";
 import { storeToRefs } from "pinia";
+import { ref } from "vue";
 
 const props = defineProps({
     profile: {
@@ -30,6 +30,9 @@ const props = defineProps({
 
 const imagesStore = useImagesStore()
 const { selectedImage } = storeToRefs(imagesStore)
+
+const input = ref<InstanceType<typeof Input> | null>(null)
+
 
 
 function changeColor(event: Event) {
@@ -72,7 +75,11 @@ function deleteProfile() {
 }
 
 function showInput() {
-    props.profile.edit_label = true
+    props.profile.edit_label = props.showLandmarks
+    
+    if(props.profile.edit_label && input.value != null){
+        input.value.focus()
+    }
 }
 
 /*
@@ -98,7 +105,7 @@ function scaleVector(pose : Pose){
                     <Label v-show="!props.profile.edit_label" class="flex whitespace-nowrap w-36 font-normal text-lg"
                         @dblclick="showInput()">{{ props.profile.label }}
                     </Label>
-                    <Input v-show="props.profile.edit_label" type="text" :model-value="props.profile.label"
+                    <Input v-show="props.profile.edit_label" ref="input" type="text" :model-value="props.profile.label"
                         class="flex h-auto w-full px-0" @focusout="props.profile.edit_label = false"
                         @keyup.enter="props.profile.edit_label = false"
                         @update:model-value="changeLabelProfile($event)" />

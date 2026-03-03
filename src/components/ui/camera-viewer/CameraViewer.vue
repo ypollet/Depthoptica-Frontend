@@ -12,8 +12,6 @@ import ImageViewer from '@/components/ui/image-viewer/ImageViewer.vue';
 import { RepositoryFactory } from '@/data/repositories/repository_factory'
 import { repositorySettings } from "@/config/appSettings"
 
-import Label from '../label/Label.vue';
-
 async function getImages(): Promise<Array<StackImage>> {
   if (imagesStore.images.length > 0) {
     try {
@@ -47,65 +45,6 @@ const { isPending, isError, data, error } = useQuery({
   queryFn: () => getImages(),
 })
 
-
-/*
-function updateLandmarksDepth(){
-  imagesStore.selectedImage.store.landmarks.forEach((landmark : Landmark) => {
-    let pos = {
-      x: landmark.pose.x,
-      y: landmark.pose.y
-    }
-    landmark.pose.depth = imagesStore.getDepthData(pos, imagesStore.index)
-  })
-  imagesStore.selectedImage.store.distances.forEach((distance : Distance) => {
-   distance.landmarks.forEach((landmark : Landmark) => {
-    let pos = {
-      x: landmark.pose.x,
-      y: landmark.pose.y
-    }
-    landmark.pose.depth = imagesStore.getDepthData(pos, imagesStore.index)
-   })
-  })
-  imagesStore.selectedImage.store.profiles.forEach((profile) => {
-    profile.landmarks.forEach((landmark) => {
-      let pos = {
-        x: landmark.pose.x,
-        y: landmark.pose.y
-      }
-      landmark.pose.depth = imagesStore.getDepthData(pos, imagesStore.index)
-    })
-  })
-}
-
-function updateLandmarksLayers(){
-  imagesStore.selectedImage.store.landmarks.forEach((landmark : Landmark) => {
-    let pos = {
-      x: landmark.pose.x,
-      y: landmark.pose.y
-    }
-    landmark.pose.layer = imagesStore.getLayerData(pos, imagesStore.index)
-  })
-  imagesStore.selectedImage.store.distances.forEach((distance : Distance) => {
-   distance.landmarks.forEach((landmark : Landmark) => {
-    let pos = {
-      x: landmark.pose.x,
-      y: landmark.pose.y
-    }
-    landmark.pose.layer = imagesStore.getLayerData(pos, imagesStore.index)
-   })
-  })
-  imagesStore.selectedImage.store.profiles.forEach((profile) => {
-    profile.landmarks.forEach((landmark : Landmark) => {
-      let pos = {
-      x: landmark.pose.x,
-      y: landmark.pose.y
-    }
-    landmark.pose.layer = imagesStore.getLayerData(pos, imagesStore.index)
-    })
-  })
-}
-
-*/
 </script>
 <template>
   <div class="w-full h-full border flex justify-center items-center">
@@ -116,9 +55,6 @@ function updateLandmarksLayers(){
       <div class="text-red-600">{{ error }}</div>
     </div>
     <div v-if="data" class="w-full h-full flex flex-col items-center">
-      <div class="flex grow flex-row w-full justify-start">
-        <Label class="border p-2">{{ imagesStore.selectedImage!.label }}</Label>
-      </div>
       <ImageViewer class="object-fit" aspect-ratio="auto" draggable="false" />
     </div>
   </div>

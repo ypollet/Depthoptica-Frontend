@@ -137,7 +137,7 @@ function importLandmarks(jsonData: string) {
 
     let landmarks = distanceMap.get("landmarks").map((landmarkObject: Object) => {
       let landmarkMap = new Map(Object.entries(landmarkObject))
-      return new Landmark(selectedImage.value.store.generateID(), landmarkMap.get("label"), landmarkMap.get("pose"), Color(landmarkMap.get("color")))
+      return new Landmark(selectedImage.value.store.generateID(), landmarkMap.get("label"), landmarkMap.get("pos"), landmarkMap.get("pose"), Color(landmarkMap.get("color")))
     })
 
     let distance = new Distance(distanceMap.get("label"), landmarks, Color(distanceMap.get("color")))

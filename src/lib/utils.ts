@@ -23,6 +23,8 @@ export enum Scale {
     nm = 0.000001,
 }
 
+export const ROUNDING = 2
+
 
 export const ZOOM_MIN = 0.05
 export const ZOOM_MAX = 4

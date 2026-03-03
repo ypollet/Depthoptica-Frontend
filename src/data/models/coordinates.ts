@@ -1,3 +1,4 @@
+import { ROUNDING } from "@/lib/utils"
 import * as math from "mathjs"
 
 export type Coordinates = {
@@ -21,7 +22,7 @@ export type Vector3D = Coords3D
 
 
 export function vectorToString(vector: Vector3D) {
-    return `(${vector.x.toFixed(2)}; ${vector.y.toFixed(2)}; ${vector.z.toFixed(2)})`
+    return `(${vector.x.toFixed(ROUNDING)}; ${vector.y.toFixed(ROUNDING)}; ${vector.z.toFixed(ROUNDING)})`
 }
 
 export function distance_vector3D(first: Coords3D, second: Coords3D) : Coords3D{
@@ -38,30 +39,3 @@ export function distance_vector2D(first: Coordinates, second: Coordinates) : Coo
         y: math.abs(second.y - first.y),
     }
 }
-
-/*
-export function scaleDepthInt(pose: Pose, intrinsics: Intrinsics, depthMin: number, depthMax: number) {
-    let z = ((depthMax - depthMin) / 256 * pose.depth) + depthMin
-    return {
-        x: (pose.x - intrinsics.cx) / intrinsics.fx * pose.depth,
-        y: (pose.y - intrinsics.cy) / intrinsics.fy * pose.depth,
-        z: z,
-    }
-}
-
-export function scaleDepthRatio(pose: Pose, pixelRatio: Ratio, depthMin: number, depthMax: number) {
-    return {
-        x: pose.x * pixelRatio.width,
-        y: pose.y * pixelRatio.height,
-        z: ((depthMax - depthMin) / 256 * pose.depth) + depthMin,
-    }
-}
-
-export function scaleLayer(pose: Pose, pixelRatio: Ratio, step: number) {
-    return {
-        x: pose.x * pixelRatio.width,
-        y: pose.y * pixelRatio.height,
-        z: pose.layer * step,
-    }
-}
-*/

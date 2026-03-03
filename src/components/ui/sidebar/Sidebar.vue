@@ -7,6 +7,7 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { ProfileList } from "../profile";
 import ProfileComputed from "../profile/ProfileComputed.vue";
 import { onMounted, ref } from "vue";
+import { ThumbnailViewer } from "../thumbnail-viewer";
 
 const imagesStore = useImagesStore()
 
@@ -19,6 +20,11 @@ onMounted(() => mounted.value = true)
 
 <template>
   <div class="flex flex-col pb-[12px] w-auto h-full" v-if="mounted">
+    <div class="flex justify-center">
+      <div class="w-4/5">
+        <ThumbnailViewer/>
+      </div>
+    </div>
     <div class="flex-none space-y-4 py-4" v-if="imagesStore.images != undefined">
       <ToggleGroup type="single" :model-value="imagesStore.index.toString()"
         @update:modelValue="$event => imagesStore.index = Number($event)">

@@ -10,9 +10,10 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 import * as math from "mathjs"
-import { Scale } from "@/lib/utils";
+import { ROUNDING, Scale } from "@/lib/utils";
 import { storeToRefs } from "pinia";
 import type { Coords3D } from "@/data/models/coordinates";
+import { Circle } from "lucide-vue-next";
 
 const STEP = 0.01
 const imagesStore = useImagesStore()
@@ -69,6 +70,7 @@ function resetScale() {
             <div v-for="(distance, index) in selectedImage.store.distances" class="flex flex-col min-w-full w-fit h-10">
                 <div class="flex flex-row items-center justify-between space-x-3 px-3 w-full h-full">
                     <div class="flex flex-row items-center justify-start space-x-3">
+                        <Circle stroke-width="1" :fill="distance.getColorHEX()"/>
                         <Label class="flex whitespace-nowrap w-auto">{{ distance.label }}</Label>
                     </div>
                     <div class="flex flex-row items-center justify-end space-x-3">
@@ -76,7 +78,7 @@ function resetScale() {
                         <Label v-show="!distance.edit_distance" class="flex whitespace-nowrap w-auto"
                             @dblclick="distance.edit_distance = true">{{ math.round(((distance.distance) ?
                                 computeDistance(distance.distance) * selectedImage.store.adjustFactor /
-                                math.number(Scale[selectedImage.store.scale as keyof typeof Scale]) : 0), 5) }} {{
+                                math.number(Scale[selectedImage.store.scale as keyof typeof Scale]) : 0), ROUNDING) }} {{
                                 selectedImage.store.scale }}</Label>
                         <Input v-show="distance.edit_distance" type="number" :min="0" :step="STEP"
                             :model-value="(distance.distance) ? computeDistance(distance.distance) * selectedImage.store.adjustFactor / math.number(Scale[selectedImage.store.scale as keyof typeof Scale]) : 0"

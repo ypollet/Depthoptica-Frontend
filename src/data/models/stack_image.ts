@@ -84,7 +84,7 @@ export type StoreData = {
 
 export type Camera = {
     zoom : number,
-    offset :Coordinates,
+    offset :Coordinates
 }
 
 export type Intrinsics = {
@@ -100,8 +100,16 @@ export type StackImageData = {
     thumbnail: string,
     label: string,
     size: Size,
+    edgeThresholds: Array<string>
     camera : Camera | undefined,
     store : StoreData | undefined,
+}
+
+export type Rect = {
+    top: number,
+    left: number,
+    width: number,
+    height: number,
 }
 export class StackImage {
     name: string
@@ -109,12 +117,13 @@ export class StackImage {
     thumbnail: string
     label: string
     size: Size
+    edgeThresholds: Array<string>
     camera : Camera
     store: Store
+    
 
     static fromData(data : StackImageData){
         let store = undefined
-        console.log(data.store)
         if(data.store != null){
             
             let landmarks = new Array<Landmark>()
@@ -132,7 +141,7 @@ export class StackImage {
 
             let profiles = new Array<Profile>()
             data.store.profiles.forEach((jsonObject : ProfileObject) => {
-                let profile = new Profile(jsonObject.label, Ends.fromJSON(jsonObject.landmarks), jsonObject.sub_landmarks, jsonObject.nbr_steps, Color(jsonObject.color))
+                let profile = new Profile(jsonObject.label, Ends.fromJSON(jsonObject.landmarks), jsonObject.subLandmarks, jsonObject.edgeThreshold, Color(jsonObject.color))
                 profiles.push(profile)
             })
 
@@ -146,6 +155,7 @@ export class StackImage {
             data.thumbnail,
             data.label,
             data.size,
+            data.edgeThresholds,
             data.camera,
             store
         )
@@ -156,6 +166,7 @@ export class StackImage {
         thumbnail: string,
         label: string,
         size: Size,
+        edgeThresholds : Array<string> | undefined = undefined,
         camera : Camera | undefined = undefined,
         store: Store | undefined = undefined
         ) {
@@ -164,7 +175,8 @@ export class StackImage {
         this.thumbnail = thumbnail
         this.label = label
         this.size = size
-        this.camera = camera || { zoom : -1, offset:{x:0, y:0} }
+        this.edgeThresholds = edgeThresholds ?? []
+        this.camera = camera || {zoom : -1, offset:{x:0, y:0}}
         this.store = store || new Store()
     }
 
@@ -175,6 +187,7 @@ export class StackImage {
             thumbnail: this.thumbnail,
             label: this.label,
             size: this.size,
+            edgeThresholds: this.edgeThresholds,
             camera: this.camera,
             store: this.store.toJSON()
         }

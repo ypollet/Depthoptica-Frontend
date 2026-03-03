@@ -10,11 +10,12 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 import * as math from "mathjs"
-import { Scale } from "@/lib/utils";
+import { ROUNDING, Scale } from "@/lib/utils";
 import {  type Coordinates, type Coords3D } from "@/data/models/coordinates";
 import { storeToRefs } from "pinia";
 import { RepositoryFactory } from "@/data/repositories/repository_factory";
 import { repositorySettings } from "@/config/appSettings";
+import { Circle } from "lucide-vue-next";
 
 const repository = RepositoryFactory.get(repositorySettings.type)
 
@@ -36,7 +37,7 @@ function computeDistance(intervals: Coordinates[]): number {
 }
 
 function changeScale(payload: string | number, profile: Profile) {
-    selectedImage.value.store.adjustFactor = math.number(payload) / computeDistance(profile.distance!) * math.number(Scale[selectedImage.value.store.scale as keyof typeof Scale])
+    selectedImage.value.store.adjustFactor = math.number(payload) / computeDistance(profile.length!) * math.number(Scale[selectedImage.value.store.scale as keyof typeof Scale])
 }
 
 function resetFactor() {
@@ -85,20 +86,36 @@ function scaleVector(pose : Pose){
             <div v-for="(profile, index) in selectedImage.store.profiles" class="flex flex-col min-w-full w-fit h-10">
                 <div class="flex flex-row items-center justify-between space-x-3 px-3 w-full h-full">
                     <div class="flex flex-row items-center justify-start space-x-3">
+                        <Circle stroke-width="1" :fill="profile.getColorHEX()"/>
                         <Label class="flex whitespace-nowrap w-auto">{{ profile.label }}</Label>
                     </div>
+                    <div class="flex-col">
+                        <div class="flex flex-row items-center justify-end space-x-3">
+                        <Label class="flex whitespace-nowrap w-auto">Length</Label>
+                        <Label v-show="!profile.edit_profile" class="flex whitespace-nowrap w-auto"
+                            @dblclick="profile.edit_profile = true">{{ math.round(((profile.length) ?
+                                computeDistance(profile.length) * selectedImage.store.adjustFactor /
+                                math.number(Scale[selectedImage.store.scale as keyof typeof Scale]) : 0), ROUNDING) }} {{
+                                selectedImage.store.scale }}</Label>
+                        <Input v-show="profile.edit_profile" type="number" :min="0" :step="STEP"
+                            :model-value="(profile.length) ? computeDistance(profile.length) * selectedImage.store.adjustFactor / math.number(Scale[selectedImage.store.scale as keyof typeof Scale]) : 0"
+                            class="flex h-auto w-auto px-0" @focusout="profile.edit_profile = false"
+                            @keyup.enter="profile.edit_profile = false"
+                            @update:model-value="changeScale($event, profile as Profile)" />
+                    </div>
                     <div class="flex flex-row items-center justify-end space-x-3">
-                        <Label class="flex whitespace-nowrap w-auto">Steps</Label>
+                        <Label class="flex whitespace-nowrap w-auto">Distance</Label>
                         <Label v-show="!profile.edit_profile" class="flex whitespace-nowrap w-auto"
                             @dblclick="profile.edit_profile = true">{{ math.round(((profile.distance) ?
                                 computeDistance(profile.distance) * selectedImage.store.adjustFactor /
-                                math.number(Scale[selectedImage.store.scale as keyof typeof Scale]) : 0), 5) }} {{
+                                math.number(Scale[selectedImage.store.scale as keyof typeof Scale]) : 0), ROUNDING) }} {{
                                 selectedImage.store.scale }}</Label>
                         <Input v-show="profile.edit_profile" type="number" :min="0" :step="STEP"
                             :model-value="(profile.distance) ? computeDistance(profile.distance) * selectedImage.store.adjustFactor / math.number(Scale[selectedImage.store.scale as keyof typeof Scale]) : 0"
                             class="flex h-auto w-auto px-0" @focusout="profile.edit_profile = false"
                             @keyup.enter="profile.edit_profile = false"
                             @update:model-value="changeScale($event, profile as Profile)" />
+                    </div>
                     </div>
                 </div>
                 

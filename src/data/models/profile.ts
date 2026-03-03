@@ -1,22 +1,25 @@
 import { Landmark } from "@/data/models/landmark"
 import Color from "color"
-import { distance_vector2D, type Coordinates, type Coords3D } from "./coordinates"
+import { distance_vector2D, distance_vector3D, type Coordinates, type Coords3D } from "./coordinates"
 import { Deque } from "./structures"
+import type { ProfileObject } from "@/lib/stores"
 
 export class Profile {
     label: string
     landmarks: Ends
-    sub_landmarks: Coordinates[]
+    subLandmarks: Coordinates[]
+    edgeThreshold: string
     color: Color
     hover_profile : number | undefined
     edit_label: boolean
     edit_profile: boolean
     show: boolean
 
-    constructor(label: string, landmarks: Ends | null = null, sub_landmarks: Coordinates[] | null = null, nbr_steps: number | null = null, color: Color | null = null) {
+    constructor(label: string, landmarks: Ends | null = null, subLandmarks: Coordinates[] | null = null, edgeThreshold : string | undefined = undefined, color: Color | null = null) {
         this.label = label
         this.landmarks = landmarks || new Ends
-        this.sub_landmarks = sub_landmarks || []
+        this.subLandmarks = subLandmarks || []
+        this.edgeThreshold = edgeThreshold || "none"
         this.edit_label = false
         this.edit_profile = false
         this.hover_profile = undefined
@@ -25,13 +28,13 @@ export class Profile {
     }
 
     get graph(): Coordinates[] {
-        if (this.sub_landmarks.length === 0) {
+        if (this.subLandmarks.length === 0) {
             return []
         }
 
-        const origin = this.sub_landmarks[0]!
+        const origin = this.subLandmarks[0]!
         
-        let graph =  this.sub_landmarks.map((point) => {
+        let graph =  this.subLandmarks.map((point) => {
             const dx = point.x - origin.x
             const dy = point.y - origin.y
 
@@ -40,18 +43,17 @@ export class Profile {
                 y: dy,
             }
         })
-        console.log(graph[0])
         return graph
     }
 
-    get distance(): Coordinates[] | undefined {
+    get length(): Coordinates[] | undefined {
         if (!this.landmarks.isFull()) {
             return undefined
         }
         let intervals: Coordinates[] = []
 
         let last : Coordinates | null = null
-        this.sub_landmarks.map((point) => {
+        this.subLandmarks.map((point) => {
             if(last == null){
                 last = point
                 return
@@ -61,6 +63,17 @@ export class Profile {
         });
         
         return intervals
+    }
+
+    get distance(): Coords3D[] | undefined {
+        if (!this.landmarks.isFull()) {
+            return undefined
+        }
+
+
+        let start = this.landmarks.first!.pose
+        let end = this.landmarks.last!.pose
+        return [distance_vector3D(start, end)]
     }
 
     reset(): void {
@@ -93,12 +106,12 @@ export class Profile {
     }
 
     toJSON() {
-        return { label: this.label, color: this.color.hex(), landmarks: this.landmarks.toJSON(), sub_landmarks: this.sub_landmarks }
+        return { label: this.label, color: this.color.hex(), landmarks: this.landmarks.toJSON(), subLandmarks: this.subLandmarks, edgeThreshold: this.edgeThreshold }
     }
 
-    static fromJSON(json: any): Profile {
-        const landmarks = Ends.fromJSON(json.landmarks)
-        return new Profile(json.label, landmarks, json.sub_landmarks || [], json.nbr_steps, Color(json.color))
+    static fromJSON(json: ProfileObject): Profile {
+        let landmarks = Ends.fromJSON(json.landmarks)
+        return new Profile(json.label, landmarks, json.subLandmarks, json.edgeThreshold, Color(json.color))
     }
 }
 
