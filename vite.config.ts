@@ -88,7 +88,6 @@ export default defineConfig({
           } if (id.includes('/node_modules/sortable')) {
             return 'vendor_sortable';
           } if (id.includes('/node_modules/')) {
-            console.log(id)
             return 'vendor';
           }
           return null
