@@ -42,7 +42,7 @@ import autoprefixer from "autoprefixer"
 export default defineConfig({
   css: {
     postcss: {
-      plugins: [tailwindcss(),autoprefixer()],
+      plugins: [tailwindcss(), autoprefixer()],
     },
   },
   plugins: [
@@ -67,17 +67,31 @@ export default defineConfig({
         manualChunks: (id) => {
           if (id.includes('/node_modules/vuedraggable')) {
             return 'vendor_vuedraggable';
-          } else if (id.includes('/node_modules/mathjs')) {
+          } if (id.includes('/node_modules/mathjs')) {
             return 'vendor_mathjs';
-          }else if (id.includes('/node_modules/@tanstack')) {
+          } if (id.includes('/node_modules/@tanstack')) {
             return 'vendor_@tanstack';
-          }else if (id.includes('/node_modules/lucide-vue-next')) {
+          } if (id.includes('/node_modules/reka-ui')) {
+            return 'vendor_reka-ui';
+          } if (id.includes('/node_modules/d3')) {
+            return 'vendor_d3';
+          } if (id.includes('/node_modules/axios')) {
+            return 'vendor_axios';
+          }  if (id.includes('/node_modules/lucide-vue-next')) {
             return 'vendor_lucide-vue-next';
-          } else if (id.includes('/node_modules/')) {
+          } if (id.includes('/node_modules/pinia')) {
+            return 'vendor_pinia';
+          } if (id.includes('/node_modules/file-saver')) {
+            return 'vendor_file-saver';
+          } if (id.includes('/node_modules/tailwind')) {
+            return 'vendor_tailwind';
+          } if (id.includes('/node_modules/sortable')) {
+            return 'vendor_sortable';
+          } if (id.includes('/node_modules/')) {
+            console.log(id)
             return 'vendor';
-          } else {
-            return 'index';
           }
+          return null
         },
       },
     },
