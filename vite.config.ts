@@ -28,7 +28,6 @@
 
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-import { fileURLToPath, URL } from 'node:url'
 import path from 'node:path'
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
@@ -70,8 +69,10 @@ export default defineConfig({
             return 'vendor_vuedraggable';
           } else if (id.includes('/node_modules/mathjs')) {
             return 'vendor_mathjs';
-          }else if (id.includes('/node_modules/@vue')) {
-            return 'vendor_@vue';
+          }else if (id.includes('/node_modules/@tanstack')) {
+            return 'vendor_@tanstack';
+          }else if (id.includes('/node_modules/lucide-vue-next')) {
+            return 'vendor_lucide-vue-next';
           } else if (id.includes('/node_modules/')) {
             return 'vendor';
           } else {

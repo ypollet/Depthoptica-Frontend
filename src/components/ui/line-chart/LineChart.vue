@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { RepositoryFactory } from "@/data/repositories/repository_factory"
 import { repositorySettings } from "@/config/appSettings"
 import { useImagesStore } from "@/lib/stores"
+import type { AcceptableValue } from "reka-ui"
 
 const props = defineProps({
   profile: {
@@ -164,9 +165,9 @@ onMounted(() => {
 })
 watch(() => props.profile.subLandmarks, drawChart)
 
-function updateEdgeThreshold(payload: string) {
-  if (props.profile.edgeThreshold != payload) {
-    props.profile.edgeThreshold = payload
+function updateEdgeThreshold(payload: AcceptableValue) {
+  if (payload != null && props.profile.edgeThreshold != payload ) {
+    props.profile.edgeThreshold = payload?.toString()
     repository.computeProfile(imagesStore.objectPath, imagesStore.selectedImage.name, props.profile).then((profileLandmarks) => {
       if (profileLandmarks == undefined) {
         return;
@@ -185,7 +186,7 @@ function updateEdgeThreshold(payload: string) {
     <svg ref="svg"></svg>
     <div class="flex flex-row space-x-2 ">
       <Label class="content-center">Edges</Label>
-      <Select class="w-fit" :model-value="props.profile.edgeThreshold" @update:model-value="updateEdgeThreshold">
+      <Select class="w-fit" :model-value="props.profile.edgeThreshold" @onUpdate:model-value="updateEdgeThreshold">
         <SelectTrigger class="w-fit">
           <SelectValue />
         </SelectTrigger>

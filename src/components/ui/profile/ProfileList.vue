@@ -9,13 +9,16 @@ import { Profile } from "@/data/models/profile";
 import { LineChart } from '@/components/ui/line-chart'
 import { Circle } from "lucide-vue-next";
 import Button from "../button/Button.vue";
+import type { AcceptableValue } from "reka-ui";
 
 const imagesStore = useImagesStore()
 const { selectedImage } = storeToRefs(imagesStore)
 
 
-function updateSelectedDist(payload: string) {
-    selectedImage.value.store.selectedProfileIndex = Number(payload)
+function updateSelectedDist(payload: AcceptableValue) {
+    if (payload !== null) {
+        selectedImage.value.store.selectedProfileIndex = Number(payload)
+    }
 }
 </script>
 

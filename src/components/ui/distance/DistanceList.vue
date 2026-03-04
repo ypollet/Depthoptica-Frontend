@@ -7,12 +7,13 @@ import { storeToRefs } from "pinia";
 import { Distance } from "@/data/models/distance";
 import { Circle } from "lucide-vue-next";
 import Button from "../button/Button.vue";
+import type { AcceptableValue } from "reka-ui";
 
 const imagesStore = useImagesStore()
 
 const { selectedImage } = storeToRefs(imagesStore)
 
-function updateSelectedDist(payload: string) {
+function updateSelectedDist(payload: AcceptableValue) {
     selectedImage.value.store.selectedDistanceIndex = Number(payload)
 }
 </script>

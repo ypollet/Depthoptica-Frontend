@@ -35,8 +35,8 @@ onMounted(() => mounted.value = true)
     </div>
     <div class="flex-none space-y-4 py-4">
 
-      <Tabs :model-value="imagesStore.selectedImage.store.tab" @update:modelValue="$event => imagesStore.selectedImage.store.tab = $event.toString()"
-        default-value="landmarks" class="w-full my-4">
+      <Tabs :model-value="imagesStore.selectedImage.store.tab" @update:model-value="$event => imagesStore.selectedImage.store.tab = $event.toString()"
+        class="w-full my-4">
         <TabsList class="grid w-full grid-cols-3">
           <TabsTrigger value="landmarks">
             Landmarks
