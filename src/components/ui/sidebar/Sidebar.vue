@@ -53,15 +53,10 @@ onMounted(() => mounted.value = true)
         </TabsContent>
         <TabsContent value="distances">
           <DistanceList />
-          <div class="flex grow items-end mt-4">
-            <DistanceComputed />
-          </div>
+
         </TabsContent>
         <TabsContent value="profiles">
           <ProfileList />
-          <div class="flex grow items-end mt-4">
-            <ProfileComputed />
-          </div>
         </TabsContent>
       </Tabs>
     </div>

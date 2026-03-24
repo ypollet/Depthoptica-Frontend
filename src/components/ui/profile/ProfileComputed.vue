@@ -10,8 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 import * as math from "mathjs"
-import { ROUNDING, Scale } from "@/lib/utils";
-import {  type Coordinates, type Coords3D } from "@/data/models/coordinates";
+import { computeDistance, ROUNDING, Scale } from "@/lib/utils";
+import {  type Coordinates } from "@/data/models/coordinates";
 import { storeToRefs } from "pinia";
 import { RepositoryFactory } from "@/data/repositories/repository_factory";
 import { repositorySettings } from "@/config/appSettings";
@@ -23,18 +23,6 @@ const repository = RepositoryFactory.get(repositorySettings.type)
 const STEP = 0.01
 const imagesStore = useImagesStore()
 const { selectedImage } = storeToRefs(imagesStore)
-
-
-function computeDistance(intervals: Coordinates[]): number {
-    let dist = 0
-    intervals.forEach((interval : Coordinates) => {
-        let squared = math.map(Object.values(interval), math.square)
-        let sum = math.sum(squared)
-        // can't be a Complex number
-        dist += math.sqrt(sum) as number
-    })
-    return dist
-}
 
 function changeScale(payload: string | number, profile: Profile) {
     selectedImage.value.store.adjustFactor = math.number(payload) / computeDistance(profile.length!) * math.number(Scale[selectedImage.value.store.scale as keyof typeof Scale])

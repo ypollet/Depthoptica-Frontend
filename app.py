@@ -17,6 +17,7 @@ from PIL import Image, ImageFile
 import cv2
 import numpy as np
 from scipy.ndimage import gaussian_filter1d
+from scipy.signal import savgol_filter
 import math
 
 cwd = os.getcwd()
@@ -189,7 +190,6 @@ def compute_profile(id, image_id):
     im = cv2.imread(f"{directory}/{image['depthmap']}", cv2.IMREAD_GRAYSCALE | cv2.IMREAD_ANYDEPTH)
     edges = cv2.imread(f"{directory}/{image['edges']["image"]}", cv2.IMREAD_GRAYSCALE) if 'edges' in image else None
     edge_threshold = image['edges']["threshold"][threshold] if ('edges' in image and threshold in image['edges']["threshold"]) else 0
-    print(edge_threshold)
     subLandmarks, distance = wu_line(x1, y1, x2, y2, im, edges, edge_threshold)
 
     subLandmarks = [ {
@@ -290,24 +290,23 @@ def wu_line(x0, y0, x1, y1, heightmap : np.ndarray, edges : np.ndarray | None, t
 def getRatioedPixelHeight(x : int, y : int, ratio : float, heightmap : np.ndarray):
     return heightmap[y,x] * ratio
 
+
 def smooth(array, distance : float):
     x, y = array.T
     t = np.linspace(0, 1, len(x))
     t2 = np.linspace(0, 1, int(distance)*10)
     t3 = np.linspace(0, 1, 100)
 
-    x2 = np.interp(t2, t, x)
-    y2 = np.interp(t2, t, y)
-    sigma = int(distance)/10
+    x2 = np.interp(t3, t, x)
+    y2 = np.interp(t3, t, y)
+    sigma = 1#int(distance)/10
     x3 = x2
     y3 = gaussian_filter1d(y2, sigma)
 
-    x4 = np.interp(t3, t2, x3).reshape((-1,1))
-    y4 = np.interp(t3, t2, y3).reshape((-1,1))
+    """x4 = np.interp(t3, t2, x3).reshape((-1,1))
+    y4 = np.interp(t3, t2, y3).reshape((-1,1))"""
 
 
-    return np.concatenate((x4,y4),-1)
-
-
+    return np.concatenate((x3.reshape((-1,1)),y3.reshape((-1,1))),1)
 if __name__ == "__main__":
     app.run()

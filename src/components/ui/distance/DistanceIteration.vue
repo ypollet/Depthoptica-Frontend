@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useImagesStore } from "@/lib/stores";
 
-import { Landmark  } from "@/data/models/landmark";
+import { Landmark } from "@/data/models/landmark";
 
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -9,29 +9,34 @@ import { Input } from '@/components/ui/input'
 import draggable from "vuedraggable"
 
 import { ref, useTemplateRef } from "vue";
+import * as math from "mathjs"
 
-import { X, RefreshCcw, Eye, EyeOff } from "lucide-vue-next";
+
+import { X, Eraser, Eye, EyeOff } from "lucide-vue-next";
 import { Distance } from "@/data/models/distance";
 import { storeToRefs } from "pinia";
+import SelectScale from "../select-scale/SelectScale.vue";
+import { computeDistance, ROUNDING, Scale } from "@/lib/utils";
+import type { Coordinates } from "@/data/models/coordinates";
 
 const props = defineProps({
     distance: {
         type: Distance,
-        required : true
+        required: true
     },
     index: {
         type: Number,
-        required : true
+        required: true
     },
     showLandmarks: {
         type: Boolean,
-        default : true
+        default: true
     }
 })
 
 const imagesStore = useImagesStore()
 
-const {selectedImage} = storeToRefs(imagesStore)
+const { selectedImage } = storeToRefs(imagesStore)
 
 const scrollSnapType = ref<boolean>(true)
 const input = useTemplateRef('input')
@@ -46,9 +51,9 @@ function changeColor(event: Event) {
     props.distance.landmarks.forEach(landmark => landmark.setColorHEX(target.value))
 }
 
-function removeLandmark(id : string){
+function removeLandmark(id: string) {
     props.distance.remove(id)
-    if(props.distance.landmarks.length == 0){
+    if (props.distance.landmarks.length == 0) {
         selectedImage.value.store.distances.splice(props.index, 1)
     }
 }
@@ -62,18 +67,24 @@ function changeLabelDistance(payload: string | number) {
 }
 
 function deleteDistance() {
-    if(props.index <= selectedImage.value.store.selectedDistanceIndex){
+    if (props.index <= selectedImage.value.store.selectedDistanceIndex) {
         selectedImage.value.store.selectedDistanceIndex--;
     }
     selectedImage.value.store.distances.splice(props.index, 1)
 }
 
-function showInput(){
-    props.distance.edit_label = props.showLandmarks
-    
-    if(props.distance.edit_label && input.value != null){
+function showInput(e : MouseEvent) {
+    e.preventDefault()
+    if(props.index != selectedImage.value.store.selectedDistanceIndex){
+        selectedImage.value.store.selectedDistanceIndex = props.index
+        return
+    }
+    props.distance.edit_label = true
+
+    if (input.value != null) {
         input.value.focus()
     }
+    
 }
 
 /*
@@ -87,21 +98,23 @@ function scaleVector(pose : Pose){
 </script>
 
 <template>
-    <div>
-        <div class="flex pr-2 py-2 border-transparent border-2">
-            <div class="flex grow row justify-between items-center pr-3 py-2">
+    <div class="flex flex-col space-y-3">
+        <div class="flex pr-2 border-transparent border-2">
+            <div class="flex grow row justify-between items-center pr-3">
                 <div class="flex grow row w-full justify-start items-center space-x-3 mr-3">
                     <input type="color"
                         class="h-8 w-8 block bg-white border border-gray-950 cursor-pointer rounded-lg disabled:opacity-50 disabled:pointer-events-none dark:bg-slate-900 dark:border-gray-300"
                         id="hs-color-input" :value="props.distance.getColorHEX()" title="Choose your color"
                         @change="changeColor($event)">
-                    <Label v-show="!props.distance.edit_label" class="flex whitespace-nowrap w-36 font-normal text-lg"
-                        @dblclick="showInput()">{{ props.distance.label }}
-                    </Label>
-                    <Input v-show="props.distance.edit_label" ref="input" type="text" :model-value="props.distance.label"
-                        class="flex h-auto w-full px-0" @focusout="props.distance.edit_label = false"
-                        @keyup.enter="props.distance.edit_label = false"
-                        @update:model-value="changeLabelDistance($event)"/>
+                        <Label v-show="!props.distance.edit_label"
+                            class="flex whitespace-nowrap w-36 font-normal text-lg" @dblclick="showInput">
+                            {{ props.distance.label }}
+                        </Label>
+                        <Input v-show="props.distance.edit_label" ref="input" type="text"
+                            :model-value="props.distance.label" class="flex h-auto w-full px-0"
+                            @focusout="props.distance.edit_label = false"
+                            @keyup.enter="props.distance.edit_label = false"
+                            @update:model-value="changeLabelDistance($event)" />
                 </div>
                 <div class="flex row justify-end space-x-3">
                     <Button class="relative w-6 h-6 p-0" v-show="props.distance.show" variant="secondary"
@@ -113,16 +126,14 @@ function scaleVector(pose : Pose){
                         <EyeOff class="relative w-4 h-4 p-0" />
                     </Button>
                     <Button class="relative w-6 h-6 p-0" variant="secondary" @click="props.distance.reset()">
-                        <RefreshCcw class="relative w-4 h-4 p-0" />
+                        <Eraser class="relative w-4 h-4 p-0" />
                     </Button>
-                    <Button class="relative w-6 h-6 p-0" variant="destructive"
-                        @click="deleteDistance()">
+                    <Button class="relative w-6 h-6 p-0" variant="destructive" @click="deleteDistance()">
                         <X class="relative w-4 h-4 p-0" />
                     </Button>
                 </div>
             </div>
         </div>
-
         <div v-if="showLandmarks" ref="landmarksScroll" class="overflow-auto min-h-16 max-h-96 w-full border"
             :class="{ 'scroll-snap-type': scrollSnapType }">
             <draggable ref="landmarksElements" v-model="distance.landmarks"
@@ -160,6 +171,18 @@ function scaleVector(pose : Pose){
                     </div>
                 </template>
             </draggable>
+        </div>
+        <div v-if="showLandmarks" class="flex row justify-between space-x-3">
+            <SelectScale />
+            <div class="flex row space-x-1">
+                <Label class="flex whitespace-nowrap w-auto items-center">Distance :</Label>
+                <Label class="flex whitespace-nowrap w-auto items-center">
+                    {{ math.round(((distance.distance) ?
+                        computeDistance(distance.distance) * selectedImage.store.adjustFactor /
+                        math.number(Scale[selectedImage.store.scale as keyof typeof Scale]) : 0), ROUNDING) }}
+                    {{ selectedImage.store.scale }}
+                </Label>
+            </div>
         </div>
     </div>
 </template>

@@ -6,11 +6,17 @@ import { Landmark } from "@/data/models/landmark";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-import { X, RefreshCcw, Eye, EyeOff } from "lucide-vue-next";
+
+import { X, Eye, EyeOff } from "lucide-vue-next";
 import { Profile } from "@/data/models/profile";
 import { storeToRefs } from "pinia";
 import { ref } from "vue";
+import * as math from "mathjs"
+import { computeDistance, ROUNDING, Scale } from "@/lib/utils";
+import type { Coordinates } from "@/data/models/coordinates";
+import LineChart from "../line-chart/LineChart.vue";
 
 const props = defineProps({
     profile: {
@@ -27,6 +33,7 @@ const props = defineProps({
     }
 })
 
+const STEP = 0.01
 
 const imagesStore = useImagesStore()
 const { selectedImage } = storeToRefs(imagesStore)
@@ -76,11 +83,16 @@ function deleteProfile() {
 
 function showInput() {
     props.profile.edit_label = props.showLandmarks
-    
-    if(props.profile.edit_label && input.value != null){
+
+    if (props.profile.edit_label && input.value != null) {
         input.value.focus()
     }
 }
+
+function changeScale(payload: string | number, profile: Profile) {
+    selectedImage.value.store.adjustFactor = math.number(payload) / computeDistance(profile.length!) * math.number(Scale[selectedImage.value.store.scale as keyof typeof Scale])
+}
+
 
 /*
 function scaleVector(pose : Pose){
@@ -94,21 +106,58 @@ function scaleVector(pose : Pose){
 </script>
 
 <template>
-    <div>
-        <div class="flex pr-2 py-2 border-transparent border-2">
+    <div class="flex flex-col space-y-2">
+        <LineChart v-if="showLandmarks && props.profile.landmarks.isFull()" id="profile" :profile="props.profile"
+            :edgeThresholds="selectedImage.edgeThresholds" />
+        <div v-if="showLandmarks" class="flex row justify-between space-x-2">
+            <div class="flex row space-x-1">
+                <Label class="flex whitespace-nowrap w-auto items-center">Length :</Label>
+                <Label class="flex whitespace-nowrap w-auto items-center">
+                    {{ math.round(((profile.length) ?
+                        computeDistance(profile.length) * selectedImage.store.adjustFactor /
+                        math.number(Scale[selectedImage.store.scale as keyof typeof Scale]) : 0), ROUNDING) }} {{
+                        selectedImage.store.scale }}
+                </Label>
+                <!--
+                <Input v-show="profile.edit_profile" type="number" :min="0" :step="STEP"
+                    :model-value="(profile.length) ? computeDistance(profile.length) * selectedImage.store.adjustFactor / math.number(Scale[selectedImage.store.scale as keyof typeof Scale]) : 0"
+                    class="flex h-auto w-auto px-0" @focusout="profile.edit_profile = false"
+                    @keyup.enter="profile.edit_profile = false"
+                    @update:model-value="changeScale($event, profile as Profile)" />
+                -->
+            </div>
+            <div class="flex row space-x-1">
+                <Label class="flex whitespace-nowrap w-auto items-center">Distance :</Label>
+                <Label class="flex whitespace-nowrap w-auto items-center">
+                    {{ math.round(((profile.distance) ?
+                        computeDistance(profile.distance) * selectedImage.store.adjustFactor /
+                        math.number(Scale[selectedImage.store.scale as keyof typeof Scale]) : 0), ROUNDING) }}
+                    {{ selectedImage.store.scale }}
+                </Label>
+                <!--
+                <Input v-show="profile.edit_profile" type="number" :min="0" :step="STEP"
+                    :model-value="(profile.distance) ? computeDistance(profile.distance) * selectedImage.store.adjustFactor / math.number(Scale[selectedImage.store.scale as keyof typeof Scale]) : 0"
+                    class="flex h-auto w-auto px-0" @focusout="profile.edit_profile = false"
+                    @keyup.enter="profile.edit_profile = false"
+                    @update:model-value="changeScale($event, profile as Profile)" />
+                -->
+            </div>
+        </div>
+        <div class="flex pr-2 border-transparent border-2">
             <div class="flex grow row justify-between items-center pr-3 py-2">
                 <div class="flex grow row w-full justify-start items-center space-x-3 mr-3">
                     <input type="color"
                         class="h-8 w-8 block bg-white border border-gray-950 cursor-pointer rounded-lg disabled:opacity-50 disabled:pointer-events-none dark:bg-slate-900 dark:border-gray-300"
                         id="hs-color-input" :value="props.profile.getColorHEX()" title="Choose your color"
                         @change="changeColor($event)">
-                    <Label v-show="!props.profile.edit_label" class="flex whitespace-nowrap w-36 font-normal text-lg"
-                        @dblclick="showInput()">{{ props.profile.label }}
-                    </Label>
-                    <Input v-show="props.profile.edit_label" ref="input" type="text" :model-value="props.profile.label"
-                        class="flex h-auto w-full px-0" @focusout="props.profile.edit_label = false"
-                        @keyup.enter="props.profile.edit_label = false"
-                        @update:model-value="changeLabelProfile($event)" />
+                        <Label v-show="!props.profile.edit_label"
+                            class="flex whitespace-nowrap w-36 font-normal text-lg" @dblclick="showInput()">{{
+                                props.profile.label }}
+                        </Label>
+                        <Input v-show="props.profile.edit_label" ref="input" type="text"
+                            :model-value="props.profile.label" class="flex h-auto w-full px-0"
+                            @focusout="props.profile.edit_label = false" @keyup.enter="props.profile.edit_label = false"
+                            @update:model-value="changeLabelProfile($event)" />
                 </div>
                 <div class="flex row justify-end space-x-3">
                     <Button class="relative w-6 h-6 p-0" v-show="props.profile.show" variant="secondary"
@@ -118,9 +167,6 @@ function scaleVector(pose : Pose){
                     <Button class="relative w-6 h-6 p-0" v-show="!props.profile.show" variant="secondary"
                         @click="props.profile.show = true">
                         <EyeOff class="relative w-4 h-4 p-0" />
-                    </Button>
-                    <Button class="relative w-6 h-6 p-0" variant="secondary" @click="props.profile.reset()">
-                        <RefreshCcw class="relative w-4 h-4 p-0" />
                     </Button>
                     <Button class="relative w-6 h-6 p-0" variant="destructive" @click="deleteProfile()">
                         <X class="relative w-4 h-4 p-0" />

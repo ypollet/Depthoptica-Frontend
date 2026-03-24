@@ -10,6 +10,7 @@ import { LineChart } from '@/components/ui/line-chart'
 import { Circle } from "lucide-vue-next";
 import Button from "../button/Button.vue";
 import type { AcceptableValue } from "reka-ui";
+import Separator from "../separator/Separator.vue";
 
 const imagesStore = useImagesStore()
 const { selectedImage } = storeToRefs(imagesStore)
@@ -55,10 +56,7 @@ function updateSelectedDist(payload: AcceptableValue) {
         <ProfileIteration v-if="selectedImage.store.selectedProfile != null"
             :profile="(selectedImage.store.selectedProfile as Profile)"
             :index="selectedImage.store.selectedProfileIndex" :showLandmarks="true" />
-        <LineChart
-            v-if="imagesStore.selectedImage.store.tab =='profiles' && selectedImage.store.selectedProfile != null && selectedImage.store.selectedProfile.landmarks.isFull()"
-            id="profile" :profile="selectedImage.store.selectedProfile"
-            :edgeThresholds="selectedImage.edgeThresholds" />
+        <Separator class="bg-gray-400"/>
         <div
             v-for="(map) in selectedImage.store.profiles.map((profileMap, indexMap) => [profileMap, indexMap] as [Profile, number]).filter((map) => map[1] != selectedImage.store.selectedProfileIndex)">
             <ProfileIteration v-if="map[1] != selectedImage.store.selectedProfileIndex" :profile="(map[0] as Profile)"
