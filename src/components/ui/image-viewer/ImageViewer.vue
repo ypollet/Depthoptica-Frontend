@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, nextTick, type HTMLAttributes, watch, useTemplateRef, computed } from 'vue'
-import { cn, ZOOM_MAX, ZOOM_MIN, DOT_RADIUS, SPACE_TARGET } from '@/lib/utils'
+import { cn, ZOOM_MAX, ZOOM_MIN, DOT_RADIUS, SPACE_TARGET, ROUNDING } from '@/lib/utils'
 import { type Coordinates } from "@/data/models/coordinates"
 import { Landmark } from "@/data/models/landmark"
 import { useImagesStore } from '@/lib/stores'
@@ -11,7 +11,7 @@ import { Distance } from '@/data/models/distance'
 import type Color from 'color'
 import { storeToRefs } from 'pinia'
 import { Profile, type ProfileLandmarks } from '@/data/models/profile'
-import { max, min } from 'mathjs'
+import { max, min, round } from 'mathjs'
 
 
 const repository = RepositoryFactory.get(repositorySettings.type)
@@ -546,7 +546,7 @@ function getPos(pos: Coordinates): Coordinates {
   let camera = imagesStore.selectedImage.camera
   let x = ((pos.x - svgRect.left) / camera.zoom) - camera.offset.x - (shiftCanvas.value.x / ratio.width)
   let y = ((pos.y - svgRect.top) / camera.zoom) - camera.offset.y - (shiftCanvas.value.y / ratio.height)
-  return { x: x, y: y }
+  return { x: round(x, ROUNDING), y: round(y, ROUNDING) }
 }
 
 function updateOffset(movementX: number, movementY: number) {

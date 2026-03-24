@@ -6,7 +6,6 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 import { storeToRefs } from "pinia";
 import { Profile } from "@/data/models/profile";
 
-import { LineChart } from '@/components/ui/line-chart'
 import { Circle } from "lucide-vue-next";
 import Button from "../button/Button.vue";
 import type { AcceptableValue } from "reka-ui";
@@ -38,7 +37,6 @@ function updateSelectedDist(payload: AcceptableValue) {
                                 <Circle stroke-width="1" />
                                 <span class="content-center">New..</span>
                             </div>
-
                         </SelectItem>
                         <SelectItem class="h-8" v-for="(profile, index) in selectedImage.store.profiles"
                             :value="index.toString()">

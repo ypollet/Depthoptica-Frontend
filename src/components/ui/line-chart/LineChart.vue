@@ -237,18 +237,10 @@ onMounted(() => {
 watch(() => props.profile.subLandmarks, drawChart)
 watch(() => selectedImage.value.store.scale, drawChart)
 
-<<<<<<< HEAD
 function updateEdgeThreshold(payload: AcceptableValue) {
-  console.log(payload)
-  if (payload != null && props.profile.edgeThreshold != payload ) {
+  if (payload != null && props.profile.edgeThreshold != payload) {
     props.profile.edgeThreshold = payload?.toString()
-    repository.computeProfile(imagesStore.objectPath, imagesStore.selectedImage.name, props.profile).then((profileLandmarks) => {
-=======
-function updateEdgeThreshold(payload: string) {
-  if (props.profile.edgeThreshold != payload) {
-    props.profile.edgeThreshold = payload
     repository.computeProfile(imagesStore.objectPath, selectedImage.value.name, props.profile).then((profileLandmarks) => {
->>>>>>> 34c211b (Feat : updated distance/profile layout)
       if (profileLandmarks == undefined) {
         return;
       }
@@ -257,8 +249,8 @@ function updateEdgeThreshold(payload: string) {
       props.profile.landmarks.last!.pose = profileLandmarks.end
     })
   }
-
 }
+
 </script>
 
 <template>
