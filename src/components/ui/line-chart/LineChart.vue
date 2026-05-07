@@ -69,10 +69,10 @@ function drawChart() {
   let yRange = maxY - minY
 
   // If axises are too disproportionate, make a square chart
-  if (xRange < (yRange * 0.2)) {
+  if (xRange < (yRange * 0.1)) {
     xRange = yRange
   }
-  if (yRange < (xRange * 0.2)) {
+  if (yRange < (xRange * 0.1)) {
     yRange = xRange
   }
 
@@ -326,7 +326,7 @@ function updateProfile() {
 
 <template>
   <div class="flex flex-col space-y-2">
-    <div class="flex flex-row space-x-2 justify-between ">
+    <div class="flex flex-row space-x-2 justify-between items-center">
       <div>
         <div v-if="props.edgeThresholds != undefined && props.edgeThresholds.length > 0" class="flex row space-x-1">
           <Label class="content-center">Smooth profile</Label>
