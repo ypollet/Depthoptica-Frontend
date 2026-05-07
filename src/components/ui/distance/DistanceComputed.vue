@@ -12,8 +12,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import * as math from "mathjs"
 import { computeDistance, ROUNDING, Scale } from "@/lib/utils";
 import { storeToRefs } from "pinia";
-import type { Coords3D } from "@/data/models/coordinates";
-import { Circle } from "lucide-vue-next";
+import { PhCircle } from "@phosphor-icons/vue";
 
 const STEP = 0.01
 const imagesStore = useImagesStore()
@@ -59,7 +58,7 @@ function resetScale() {
             <div v-for="(distance, index) in selectedImage.store.distances" class="flex flex-col min-w-full w-fit h-10">
                 <div class="flex flex-row items-center justify-between space-x-3 px-3 w-full h-full">
                     <div class="flex flex-row items-center justify-start space-x-3">
-                        <Circle stroke-width="1" :fill="distance.getColorHEX()"/>
+                        <PhCircle stroke-width="1" :fill="distance.getColorHEX()"/>
                         <Label class="flex whitespace-nowrap w-auto">{{ distance.label }}</Label>
                     </div>
                     <div class="flex flex-row items-center justify-end space-x-3">

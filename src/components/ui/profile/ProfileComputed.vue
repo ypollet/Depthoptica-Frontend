@@ -11,11 +11,10 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 
 import * as math from "mathjs"
 import { computeDistance, ROUNDING, Scale } from "@/lib/utils";
-import {  type Coordinates } from "@/data/models/coordinates";
 import { storeToRefs } from "pinia";
 import { RepositoryFactory } from "@/data/repositories/repository_factory";
 import { repositorySettings } from "@/config/appSettings";
-import { Circle } from "lucide-vue-next";
+import { PhCircle } from "@phosphor-icons/vue";
 
 const repository = RepositoryFactory.get(repositorySettings.type)
 
@@ -74,7 +73,7 @@ function scaleVector(pose : Pose){
             <div v-for="(profile, index) in selectedImage.store.profiles" class="flex flex-col min-w-full w-fit h-10">
                 <div class="flex flex-row items-center justify-between space-x-3 px-3 w-full h-full">
                     <div class="flex flex-row items-center justify-start space-x-3">
-                        <Circle stroke-width="1" :fill="profile.getColorHEX()"/>
+                        <PhCircle stroke-width="1" :fill="profile.getColorHEX()"/>
                         <Label class="flex whitespace-nowrap w-auto">{{ profile.label }}</Label>
                     </div>
                     <div class="flex-col">

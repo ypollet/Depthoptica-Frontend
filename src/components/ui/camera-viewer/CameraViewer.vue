@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Loader2 } from 'lucide-vue-next';
+import { PhCircleNotch } from '@phosphor-icons/vue';
 
 import { useQuery } from '@tanstack/vue-query'
 
@@ -49,7 +49,7 @@ const { isPending, isError, data, error } = useQuery({
 <template>
   <div class="w-full h-full border flex justify-center items-center">
     <div v-if="isPending" class="w-full h-full flex justify-center items-center">
-      <Loader2 class="animate-spin mr-10" width="10%" height="10%" />
+      <PhCircleNotch class="animate-spin mr-10" width="10%" height="10%" />
     </div>
     <div v-if="isError" class="w-full h-full flex justify-center items-center">
       <div class="text-red-600">{{ error }}</div>

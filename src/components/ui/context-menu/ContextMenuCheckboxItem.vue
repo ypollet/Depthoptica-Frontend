@@ -2,7 +2,7 @@
 import type { ContextMenuCheckboxItemEmits, ContextMenuCheckboxItemProps } from "reka-ui"
 import type { HTMLAttributes } from "vue"
 import { reactiveOmit } from "@vueuse/core"
-import { Check } from "lucide-vue-next"
+import { PhCheck } from '@phosphor-icons/vue'
 import {
   ContextMenuCheckboxItem,
   ContextMenuItemIndicator,
@@ -28,7 +28,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
   >
     <span class="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
       <ContextMenuItemIndicator>
-        <Check class="h-4 w-4" />
+        <PhCheck class="h-4 w-4" />
       </ContextMenuItemIndicator>
     </span>
     <slot />

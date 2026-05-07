@@ -3,7 +3,7 @@ import { Landmark } from '@/data/models/landmark';
 import { useImagesStore } from '@/lib/stores';
 import { storeToRefs } from 'pinia';
 import { Button } from '../button';
-import { Eye, EyeOff, X } from 'lucide-vue-next';
+import { PhEye, PhEyeClosed, PhX } from '@phosphor-icons/vue';
 import { Label } from '../label';
 import { Input } from '../input';
 
@@ -63,14 +63,14 @@ function removeLandmark(id: string) {
             <div class="flex items-center justify-end">
               <Button class="w-6 h-6 p-0 mr-3" v-show="landmark.show" variant="secondary"
                 @click="landmark.show = false">
-                <Eye class="relative w-4 h-4 p-0" />
+                <PhEye class="relative w-4 h-4 p-0" />
               </Button>
               <Button class="w-6 h-6 p-0 mr-3" v-show="!landmark.show" variant="secondary"
                 @click="landmark.show = true">
-                <EyeOff class="relative w-4 h-4 p-0" />
+                <PhEyeClosed class="relative w-4 h-4 p-0" />
               </Button>
               <Button class="w-6 h-6 p-0" variant="destructive" @click="removeLandmark(landmark.getId())">
-                <X class="relative w-4 h-4 p-0" />
+                <PhX class="relative w-4 h-4 p-0" />
               </Button>
             </div>
           </div>

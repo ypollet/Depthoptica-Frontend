@@ -3,15 +3,10 @@ import { useImagesStore } from "@/lib/stores";
 
 import { Landmark } from "@/data/models/landmark";
 
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Input } from '@/components/ui/input'
 import draggable from "vuedraggable"
 
 import { ref } from "vue";
 
-import { X, Eye, EyeOff } from "lucide-vue-next";
-import { vectorToString } from "@/data/models/coordinates";
 import { storeToRefs } from "pinia";
 import LandmarkIteration from "./LandmarkIteration.vue";
 

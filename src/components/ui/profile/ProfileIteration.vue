@@ -6,16 +6,14 @@ import { Landmark } from "@/data/models/landmark";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 
-import { X, Eye, EyeOff } from "lucide-vue-next";
+import { PhX, PhEye, PhEyeClosed } from "@phosphor-icons/vue";
 import { Profile } from "@/data/models/profile";
 import { storeToRefs } from "pinia";
 import { ref } from "vue";
 import * as math from "mathjs"
 import { computeDistance, ROUNDING, Scale } from "@/lib/utils";
-import type { Coordinates } from "@/data/models/coordinates";
 import LineChart from "../line-chart/LineChart.vue";
 
 const props = defineProps({
@@ -89,10 +87,6 @@ function showInput() {
     }
 }
 
-function changeScale(payload: string | number, profile: Profile) {
-    selectedImage.value.store.adjustFactor = math.number(payload) / computeDistance(profile.length!) * math.number(Scale[selectedImage.value.store.scale as keyof typeof Scale])
-}
-
 
 /*
 function scaleVector(pose : Pose){
@@ -112,11 +106,11 @@ function scaleVector(pose : Pose){
         <div v-if="showLandmarks" class="flex row justify-between space-x-2">
             <div class="flex row space-x-1">
                 <Label class="flex whitespace-nowrap w-auto items-center">Length :</Label>
-                <Label class="flex whitespace-nowrap w-auto items-center">
-                    {{ math.round(((profile.length) ?
-                        computeDistance(profile.length) * selectedImage.store.adjustFactor /
-                        math.number(Scale[selectedImage.store.scale as keyof typeof Scale]) : 0), ROUNDING) }} {{
-                        selectedImage.store.scale }}
+                <Label class="inline-flex flex-wrap w-auto items-start content-start gap-x-2 gap-y-1">
+                    <div v-for="length, index in profile.length" class="min-w-20 text-right tabular-nums" @mouseover="profile.hover_segment = index" @mouseout="profile.hover_segment = undefined">{{ math.round(((length) ?
+                        computeDistance(length) * selectedImage.store.adjustFactor /
+                        math.number(Scale[selectedImage.store.scale as keyof typeof Scale]) : 0), ROUNDING) }}{{
+                        selectedImage.store.scale }}</div>
                 </Label>
                 <!--
                 <Input v-show="profile.edit_profile" type="number" :min="0" :step="STEP"
@@ -162,14 +156,14 @@ function scaleVector(pose : Pose){
                 <div class="flex row justify-end space-x-3">
                     <Button class="relative w-6 h-6 p-0" v-show="props.profile.show" variant="secondary"
                         @click="props.profile.show = false">
-                        <Eye class="relative w-4 h-4 p-0" />
+                        <PhEye class="relative w-4 h-4 p-0" />
                     </Button>
                     <Button class="relative w-6 h-6 p-0" v-show="!props.profile.show" variant="secondary"
                         @click="props.profile.show = true">
-                        <EyeOff class="relative w-4 h-4 p-0" />
+                        <PhEyeClosed class="relative w-4 h-4 p-0" />
                     </Button>
                     <Button class="relative w-6 h-6 p-0" variant="destructive" @click="deleteProfile()">
-                        <X class="relative w-4 h-4 p-0" />
+                        <PhX class="relative w-4 h-4 p-0" />
                     </Button>
                 </div>
             </div>
@@ -194,7 +188,7 @@ function scaleVector(pose : Pose){
                     <div class="flex items-center justify-end space-x-3">
                         <Button class="relative w-6 h-6 p-0" variant="destructive"
                             @click="removeFirst(profile.landmarks.first!.id)">
-                            <X class="relative w-4 h-4 p-0" />
+                            <PhX class="relative w-4 h-4 p-0" />
                         </Button>
                     </div>
                 </div>
@@ -217,7 +211,7 @@ function scaleVector(pose : Pose){
                     <div class="flex items-center justify-end space-x-3">
                         <Button class="relative w-6 h-6 p-0" variant="destructive"
                             @click="removeLast(profile.landmarks.last!.id)">
-                            <X class="relative w-4 h-4 p-0" />
+                            <PhX class="relative w-4 h-4 p-0" />
                         </Button>
                     </div>
                 </div>

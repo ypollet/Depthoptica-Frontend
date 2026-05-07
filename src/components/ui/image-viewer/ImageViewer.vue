@@ -685,7 +685,7 @@ function stopDrag(event: MouseEvent) {
           return;
         }
         profile.landmarks.first!.pose = profileLandmarks.start
-        profile.subLandmarks = profileLandmarks.subLandmarks
+        profile.subLandmarkSegments = profileLandmarks.subLandmarkSegments
         profile.landmarks.last!.pose = profileLandmarks.end
       })
     } else {
@@ -783,7 +783,7 @@ async function addLandmarkToProfile(pos: Coordinates, profile: Profile) {
       return;
     }
     profile.landmarks.first!.pose = profileLandmarks.start
-    profile.subLandmarks = profileLandmarks.subLandmarks
+    profile.subLandmarkSegments = profileLandmarks.subLandmarkSegments
     profile.landmarks.last!.pose = profileLandmarks.end
   })
 }

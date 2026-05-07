@@ -5,7 +5,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useImagesStore } from "@/lib/stores";
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { ProfileList } from "../profile";
-import ProfileComputed from "../profile/ProfileComputed.vue";
 import { onMounted, ref } from "vue";
 import { ThumbnailViewer } from "../thumbnail-viewer";
 

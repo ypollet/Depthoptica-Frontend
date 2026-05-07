@@ -4,7 +4,6 @@ import { nextTick, onMounted, useTemplateRef, watch } from 'vue'
 
 import * as d3 from 'd3'
 import { Profile } from "@/data/models/profile"
-import Label from "../label/Label.vue"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RepositoryFactory } from "@/data/repositories/repository_factory"
 import { repositorySettings } from "@/config/appSettings"
@@ -16,8 +15,10 @@ import * as math from "mathjs"
 import saveAs from 'file-saver';
 import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem, ContextMenuLabel } from "../context-menu"
 import { storeToRefs } from "pinia"
-import SelectScale from "../select-scale/SelectScale.vue"
-import Button from "../button/Button.vue"
+import { SelectScale } from "@/components/ui/select-scale"
+import { Button } from "@/components/ui/button"
+import { Label } from "@/components/ui/label"
+import Toggle from "../toggle/Toggle.vue";
 
 const props = defineProps({
   profile: {
@@ -42,28 +43,38 @@ const container = useTemplateRef("container")
 const svg = useTemplateRef("svg")
 
 function drawChart() {
-  let data = props.profile.subLandmarks
-  if (data.length == 0 || container.value == null) {
+  let dataSegments = props.profile.subLandmarkSegments
+  if (dataSegments.length == 0 || container.value == null) {
     return;
   }
   const svgEl = d3.select(svg.value)
   svgEl.selectAll('*').remove()
 
-  let scaledData = data.map((point) => {
-    return {
-      x: point.x / math.number(Scale[selectedImage.value.store.scale as keyof typeof Scale]),
-      y: point.y / math.number(Scale[selectedImage.value.store.scale as keyof typeof Scale])
-    }
+  let scaledData = dataSegments.map((segment) => {
+    return segment.map((point) => {
+      return {
+        x: point.x / math.number(Scale[selectedImage.value.store.scale as keyof typeof Scale]),
+        y: point.y / math.number(Scale[selectedImage.value.store.scale as keyof typeof Scale])
+      }
+    })
   })
 
-  const xValues = scaledData.map((point) => point.x)
-  const yValues = scaledData.map((point) => point.y)
+  const xValues = scaledData.map((segment) => segment.map((point) => point.x)).flat()
+  const yValues = scaledData.map((segment) => segment.map((point) => point.y)).flat()
   const minX = xValues.length > 0 ? Math.min(...xValues) : 0
   const maxX = xValues.length > 0 ? Math.max(...xValues) : 1
   const minY = yValues.length > 0 ? Math.min(...yValues) : 0
   const maxY = yValues.length > 0 ? Math.max(...yValues) : 1
-  const xRange = Math.max(maxX - minX, 0.001)
-  const yRange = Math.max(maxY - minY, 0.001)
+  let xRange = maxX - minX
+  let yRange = maxY - minY
+
+  // If axises are too disproportionate, make a square chart
+  if (xRange < (yRange * 0.2)) {
+    xRange = yRange
+  }
+  if (yRange < (xRange * 0.2)) {
+    yRange = xRange
+  }
 
   const margin = { left: 40, top: 20, right: 15, bottom: 7 }
 
@@ -94,11 +105,7 @@ function drawChart() {
 
   const xScale = d3.scaleLinear()
     .range([margin.left, paddedWidth - margin.right])
-    .domain(
-      d3.extent(scaledData, function (d) {
-        return d.x;
-      }) as [number, number]
-    )
+    .domain([minX, maxX])
 
   svgEl.append('g')
     .call(d3.axisBottom(xScale).ticks(horizontal_ticks, "~s"))
@@ -111,11 +118,7 @@ function drawChart() {
 
   const yScale = d3.scaleLinear()
     .range([height - margin.bottom, margin.top])
-    .domain(
-      d3.extent(scaledData, function (d) {
-        return d.y;
-      }) as [number, number]
-    )
+    .domain([minY, maxY])
 
 
   svgEl.append('g')
@@ -143,32 +146,98 @@ function drawChart() {
     .attr('r', 8.5)
     .style("opacity", 0)
 
-  // Add the line
-  svgEl.append("path")
-    .datum(scaledData)
-    .attr("fill", "none")
-    .attr("stroke", "steelblue")
-    .attr("stroke-width", 2)
-    .attr("d", line);
+  scaledData.forEach((scaledSegment, index) => {
+    // Add the line
+    svgEl.append("path")
+      .datum(scaledSegment)
+      .attr("fill", "none")
+      .attr("stroke", (index == props.profile.hover_segment) ? "limegreen" : "steelblue")
+      .attr("stroke-width", 2)
+      .attr("d", line);
+  })
+
 
   function mouseover() {
     focus.style("opacity", 1)
   }
 
   function mousemove(event: MouseEvent) {
-    // recover coordinate we need
-    var x0 = xScale.invert(d3.pointer(event)[0]);
-    var i = d3.bisect(scaledData.map(d => d.x), x0, 0, scaledData.length - 1);
+    // Recover X in data-space and interpolate the corresponding Y on the profile.
+    const x0 = Math.min(maxX, Math.max(xScale.invert(d3.pointer(event)[0]), minX));
+    const y0 = getYAtX(x0, scaledData)
+
+    props.profile.hover_profile = x0 / maxX
+    if (y0 === undefined) {
+
+      focus.style("opacity", 0)
+      return
+    }
+
+    focus
+      .style("opacity", 1)
+      .attr("cx", xScale(x0))
+      .attr("cy", yScale(y0))
+    /*
+    var i = d3.bisect(scaledData.map(segment => segment.map(d => d.x)).flat(), x0, 0, scaledData.length - 1);
     let selectedData = scaledData[i]!
-    props.profile.hover_profile = selectedData.x / scaledData[scaledData.length - 1]!.x
+     selectedData.x / scaledData[scaledData.length - 1]!.x
     focus
       .attr("cx", xScale(selectedData.x))
       .attr("cy", yScale(selectedData.y))
+    */
   }
   function mouseout() {
     focus.style("opacity", 0)
     props.profile.hover_profile = undefined
   }
+
+  function getYAtX(x: number, segments: Coordinates[][]): number | undefined {
+    for (const segment of segments) {
+      if (segment.length === 0) {
+        continue
+      }
+
+      if (segment.length === 1) {
+        if (x === segment[0]!.x) {
+          return segment[0]!.y
+        }
+        continue
+      }
+
+      const firstX = segment[0]!.x
+      const lastX = segment[segment.length - 1]!.x
+      if (x < firstX || x > lastX) {
+        continue
+      }
+
+      for (let i = 1; i < segment.length; i++) {
+        const p1 = segment[i - 1]!
+        const p2 = segment[i]!
+
+        if (x < p1.x || x > p2.x) {
+          continue
+        }
+
+        if (x === p1.x) {
+          return p1.y
+        }
+        if (x === p2.x) {
+          return p2.y
+        }
+
+        if (p1.x === p2.x) {
+          // Vertical segment: choose the midpoint on Y.
+          return (p1.y + p2.y) / 2
+        }
+
+        const t = (x - p1.x) / (p2.x - p1.x)
+        return p1.y + t * (p2.y - p1.y)
+      }
+    }
+
+    return undefined
+  }
+
 
   return svgEl.node()
 }
@@ -209,7 +278,9 @@ function exportJPG() {
     let ratio_img = (horizontal) ? long_side / svg.value.clientWidth : long_side / svg.value.clientHeight
 
     let image = new Image()
+    console.log("Creating SVG")
     let xml = new XMLSerializer().serializeToString(svg.value);
+    btoa(xml)
     image.src = "data:image/svg+xml;base64," + btoa(xml)
     image.onload = () => {
       let ctx = canvas.getContext("2d")!;
@@ -234,52 +305,56 @@ onMounted(() => {
   }
   drawChart()
 })
-watch(() => props.profile.subLandmarks, drawChart)
+watch(() => props.profile.subLandmarkSegments, drawChart)
+watch(() => props.profile.hover_segment, drawChart)
 watch(() => selectedImage.value.store.scale, drawChart)
 
-function updateEdgeThreshold(payload: AcceptableValue) {
-  if (payload != null && props.profile.edgeThreshold != payload) {
-    props.profile.edgeThreshold = payload?.toString()
+function updateProfile() {
+    console.log(props.profile.smooth)
     repository.computeProfile(imagesStore.objectPath, selectedImage.value.name, props.profile).then((profileLandmarks) => {
       if (profileLandmarks == undefined) {
+        console.log("undefined")
         return;
       }
       props.profile.landmarks.first!.pose = profileLandmarks.start
-      props.profile.subLandmarks = profileLandmarks.subLandmarks
+      props.profile.subLandmarkSegments = profileLandmarks.subLandmarkSegments
       props.profile.landmarks.last!.pose = profileLandmarks.end
     })
-  }
 }
 
 </script>
 
 <template>
-  <div>
+  <div class="flex flex-col space-y-2">
     <div class="flex flex-row space-x-2 justify-between ">
-      <div class="flex row space-x-1">
-        <Label class="content-center">Edges</Label>
-        <Select class="w-fit" :model-value="props.profile.edgeThreshold" @update:model-value="updateEdgeThreshold">
-          <SelectTrigger class="w-fit">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              <SelectItem class="h-8" value="none">
-                <div class="flex flex-row space-x-2">
-                  <span class="content-center">none</span>
-                </div>
+      <div>
+        <div v-if="props.edgeThresholds != undefined && props.edgeThresholds.length > 0" class="flex row space-x-1">
+          <Label class="content-center">Smooth profile</Label>
+          <Select class="w-fit" v-model="props.profile.edgeThreshold" @update:model-value="updateProfile">
+            <SelectTrigger class="w-fit">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectItem class="h-8" value="none">
+                  <div class="flex flex-row space-x-2">
+                    <span class="content-center">none</span>
+                  </div>
 
-              </SelectItem>
-              <SelectItem class="h-8" v-for="threshold in props.edgeThresholds" :value="threshold">
-                <div class="flex flex-row space-x-2">
-                  <span class="content-center">{{ threshold }}</span>
-                </div>
-              </SelectItem>
-            </SelectGroup>
-          </SelectContent>
-        </Select>
+                </SelectItem>
+                <SelectItem class="h-8" v-for="threshold in props.edgeThresholds" :value="threshold">
+                  <div class="flex flex-row space-x-2">
+                    <span class="content-center">{{ threshold }}</span>
+                  </div>
+                </SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
-
+      <div class="flex items-center gap-3">
+        <Toggle :default-value="props.profile.smooth" @update:pressed="(payload : boolean) => { props.profile.smooth = payload; updateProfile()}">Smooth</Toggle>
+      </div>
       <SelectScale />
     </div>
     <ContextMenu>

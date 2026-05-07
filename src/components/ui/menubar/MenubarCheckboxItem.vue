@@ -2,7 +2,7 @@
 import type { MenubarCheckboxItemEmits, MenubarCheckboxItemProps } from "reka-ui"
 import type { HTMLAttributes } from "vue"
 import { reactiveOmit } from "@vueuse/core"
-import { Check } from "lucide-vue-next"
+import { PhCheck } from '@phosphor-icons/vue'
 import {
   MenubarCheckboxItem,
   MenubarItemIndicator,
@@ -28,7 +28,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
   >
     <span class="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
       <MenubarItemIndicator>
-        <Check class="w-4 h-4" />
+        <PhCheck class="w-4 h-4" />
       </MenubarItemIndicator>
     </span>
     <slot />

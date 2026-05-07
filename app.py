@@ -13,7 +13,7 @@ import os
 import json
 import base64
 
-from PIL import Image, ImageFile
+from PIL import Image
 import cv2
 import numpy as np
 from scipy.ndimage import gaussian_filter1d
@@ -173,7 +173,13 @@ def compute_profile(id, image_id):
     x2 = float(request.args.get("x2"))
     y2 = float(request.args.get("y2"))
 
-    threshold = request.args.get("threshold") or "" # String or None
+    threshold = request.args.get("threshold", "")  # String or None
+    smooth_str = request.args.get("smooth", "true")
+    match smooth_str.lower():
+        case "false":
+            smooth = False
+        case _:
+            smooth = True
 
     directory = f"{DATA_FOLDER}/{id}"
     if not os.path.exists(directory):
@@ -188,43 +194,75 @@ def compute_profile(id, image_id):
 
     subLandmarks = []
     im = cv2.imread(f"{directory}/{image['depthmap']}", cv2.IMREAD_GRAYSCALE | cv2.IMREAD_ANYDEPTH)
+    mask = cv2.imread(f"{directory}/{image['mask']}", cv2.IMREAD_GRAYSCALE) if 'mask' in image else None
     edges = cv2.imread(f"{directory}/{image['edges']["image"]}", cv2.IMREAD_GRAYSCALE) if 'edges' in image else None
     edge_threshold = image['edges']["threshold"][threshold] if ('edges' in image and threshold in image['edges']["threshold"]) else 0
-    subLandmarks, distance = wu_line(x1, y1, x2, y2, im, edges, edge_threshold)
-
-    subLandmarks = [ {
-        "x": i["x"] * image_data["PixelRatio"][0],
-        "y": i["y"]  * image_data["PixelRatio"][1],
-        "z": ((image_data["Zmax"] - image_data["Zmin"]) / (2**(im.itemsize*8)) * i["z"]) + image_data["Zmin"] # 16bits images
-    } for i in subLandmarks]
-
-    start = subLandmarks[0]
-    line_3d = [ {
-        "x": i["x"] - start["x"],
-        "y": i["y"] - start["y"],
-        "z": i["z"]
-    } for i in subLandmarks]
-
-    # Smooth line
-
-    line_2d = np.array([
-        [math.sqrt(point["x"]**2 + point["y"]**2), point["z"]] 
-        for point in line_3d])
+    list_distances = wu_line(x1, y1, x2, y2, im, mask, edges, edge_threshold)
     
-    smoothed_array = smooth(line_2d, distance)
+    graphs_segments = []
+    if len(list_distances) > 0:
+        first_segment, _ = list_distances[0]
 
-    graph = [{
-        "x": point[0],
-        "y": point[1]
-    } for point in smoothed_array.tolist()]   
+        last_segment, _ = list_distances[-1]
+        start =  {
+                "x": first_segment[0]["x"] * image_data["PixelRatio"][0],
+                "y": first_segment[0]["y"]  * image_data["PixelRatio"][1],
+                "z": ((image_data["Zmax"] - image_data["Zmin"]) / (2**(im.itemsize*8)) * first_segment[0]["z"]) + image_data["Zmin"]
+            }
 
+        end =  {
+                "x": last_segment[-1]["x"] * image_data["PixelRatio"][0],
+                "y": last_segment[-1]["y"]  * image_data["PixelRatio"][1],
+                "z": ((image_data["Zmax"] - image_data["Zmin"]) / (2**(im.itemsize*8)) * last_segment[-1]["z"]) + image_data["Zmin"]
+            }
+        
+        
+        
+        for distance in list_distances:
+            subLandmarks, distance = distance[0], distance[1]
+            subLandmarks = [ {
+                "x": i["x"] * image_data["PixelRatio"][0],
+                "y": i["y"]  * image_data["PixelRatio"][1],
+                "z": ((image_data["Zmax"] - image_data["Zmin"]) / (2**(im.itemsize*8)) * i["z"]) + image_data["Zmin"]
+            } for i in subLandmarks]
+
+            line_3d = [ {
+                "x": i["x"] - start["x"],
+                "y": i["y"] - start["y"],
+                "z": i["z"]
+            } for i in subLandmarks]
+
+            # Smooth line
+
+            line_2d = np.array([
+                [math.sqrt(point["x"]**2 + point["y"]**2), point["z"]] 
+                for point in line_3d])
+            if smooth:
+                
+                line_2d = smooth_array(line_2d, distance)
+
+            graphs_segments.append([{
+                "x": point[0],
+                "y": point[1]
+            } for point in line_2d.tolist()])
+    else:
+        start =  {
+                "x": x1 * image_data["PixelRatio"][0],
+                "y": y1  * image_data["PixelRatio"][1],
+                "z": 0
+            }
+        end =  {
+                    "x": x2 * image_data["PixelRatio"][0],
+                    "y": y2  * image_data["PixelRatio"][1],
+                    "z": 0
+                }
     return jsonify({
-        "start": subLandmarks[0],
-        "end" : subLandmarks[-1],
-        "subLandmarks": graph
+        "start": start,
+        "end" : end,
+        "subLandmarkSegments": graphs_segments
     })
 
-def wu_line(x0, y0, x1, y1, heightmap : np.ndarray, edges : np.ndarray | None, threshold = 0):
+def wu_line(x0, y0, x1, y1, heightmap : np.ndarray, mask : np.ndarray | None, edges : np.ndarray | None, threshold = 0):
     horizontal = abs(y1 - y0) < abs(x1 - x0) # if x is longer than y
     
     inverse = x1 < x0 if horizontal else y1 < y0
@@ -242,22 +280,48 @@ def wu_line(x0, y0, x1, y1, heightmap : np.ndarray, edges : np.ndarray | None, t
 
     gradient = numerator/distance if distance != 0 else 1
 
-    list_pixels =  []
+    list_distances = []
+
+    
 
     # get integer point before start point
     ratio_start = int(x0) - x0 if horizontal else int(y0) - y0
-    start_x = int(x0) if horizontal else x0 + gradient*ratio_start
-    start_y = y0 + gradient*ratio_start if horizontal else int(y0)
-    for i in range(0, int(distance)+1):
+    start_point = {
+        "x" : int(x0) if horizontal else x0 + gradient*ratio_start,
+        "y" : y0 + gradient*ratio_start if horizontal else int(y0)
+    }
+
+    start = 0
+    length_line = int(distance)+1
+    while start < length_line:
+
+        list_pixels, distance, end = handle_distance(start, length_line, inverse, start_point, gradient, horizontal, heightmap, mask, edges, threshold)
+        if len(list_pixels) > 0:  #not empty
+            list_distances.append((list_pixels, distance))
         
+        start = end 
+    
+    return list_distances
+
+
+def handle_distance(i, length_line, inverse, start_point, gradient, horizontal, heightmap, mask, edges, threshold):
+    list_pixels = []
+    list_i = [] # get distance of each pixels added, to get the 2 furthest points
+    while i < length_line:
         # iterate from int before start point to int after end point
-        x = start_x + i if horizontal else start_x + i*gradient
-        y = start_y + i*gradient if horizontal else start_y + i
+        x = start_point["x"] + i if horizontal else start_point["x"] + i*gradient
+        y = start_point["y"] + i*gradient if horizontal else start_point["y"] + i
         ix, iy = int(x), int(y)
+
+        i += 1
+        if masked(ix, iy, mask):
+            break
+        
         dist = y - iy  if horizontal else x - ix # swap dist if steep
         depth = getRatioedPixelHeight(ix, iy, 1.0 - dist, heightmap) + getRatioedPixelHeight(ix, iy+1, dist, heightmap) if horizontal else getRatioedPixelHeight(ix, iy, 1.0 - dist, heightmap) + getRatioedPixelHeight(ix+1, iy, dist, heightmap)
         isEdge = edges[iy,ix] >= threshold if edges is not None else True
         if isEdge:
+            list_i.append(i-1)
             list_pixels.append(
                 {
                     "x": x,
@@ -265,33 +329,23 @@ def wu_line(x0, y0, x1, y1, heightmap : np.ndarray, edges : np.ndarray | None, t
                     "z": depth,
                 }
         )
-    # Handle start point
-    list_pixels[0] = {
-                "x": x0,
-                "y": y0,
-                "z": list_pixels[0]["z"] * (1-abs(ratio_start)) + list_pixels[1]["z"] * abs(ratio_start),
-            }
+        
     
-    
-    # Handle end point
-    ratio_end = math.ceil(x1) - x1 if horizontal else math.ceil(y1) - y1
-    list_pixels[-1] = {
-                "x": x1,
-                "y": y1,
-                "z": list_pixels[-1]["z"] * (1-abs(ratio_end)) + list_pixels[-2]["z"] * abs(ratio_end),
-            }
 
     if inverse:
         list_pixels.reverse()
     
+    return list_pixels, list_i[-1] - list_i[0] if len(list_i) else 0, i
     
-    return list_pixels, distance
+
+def masked(x : int, y : int, mask : np.ndarray | None):
+    return mask is not None and not mask[y,x]
 
 def getRatioedPixelHeight(x : int, y : int, ratio : float, heightmap : np.ndarray):
     return heightmap[y,x] * ratio
 
 
-def smooth(array, distance : float):
+def smooth_array(array, distance : float):
     x, y = array.T
     t = np.linspace(0, 1, len(x))
     t2 = np.linspace(0, 1, int(distance)*10)

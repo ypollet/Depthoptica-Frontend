@@ -104,8 +104,9 @@ export type LandmarkInfo = {
 export type ProfileObject = {
   label: string
   landmarks: EndsObject
-  subLandmarks: Array<Coords3D>,
+  subLandmarkSegments: Array<Array<Coords3D>>,
   edgeThreshold?: string,
+  smooth?: boolean,
   color?: string
 }
 

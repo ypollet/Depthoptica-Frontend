@@ -1,14 +1,10 @@
 <script setup lang="ts">
 import {
   Menubar,
-  MenubarCheckboxItem,
   MenubarContent,
   MenubarItem,
   MenubarLabel,
   MenubarMenu,
-  MenubarRadioGroup,
-  MenubarRadioItem,
-  MenubarSeparator,
   MenubarShortcut,
   MenubarSub,
   MenubarSubContent,
@@ -22,7 +18,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogClose
 } from '@/components/ui/dialog'
 
@@ -30,6 +25,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
+import { HelpGuide } from './ui/help'
 import Color from "color"
 
 import { Landmark } from '@/data/models/landmark'
@@ -40,6 +36,7 @@ import { useToggle, useDark } from '@vueuse/core'
 import { useSettingsStore, useImagesStore } from '@/lib/stores'
 import saveAs from 'file-saver';
 import { storeToRefs } from 'pinia'
+import { ref } from 'vue'
 
 const settingsStore = useSettingsStore()
 const imagesStore = useImagesStore()
@@ -146,70 +143,81 @@ function importLandmarks(jsonData: string) {
 
 }
 
+const isImportDialogOpen = ref<boolean>(false)
+const setIsImportDialogOpen = useToggle(isImportDialogOpen)
+
+const isHelpGuideDialogOpen = ref<boolean>(false)
+const setIsHelpGuideDialogOpen = useToggle(isHelpGuideDialogOpen)
 
 </script>
 
 <template>
   <div>
+    <Menubar class="rounded border-b z-100 h-10">
+      <MenubarMenu>
+        <MenubarTrigger class="relative">
+          File
+        </MenubarTrigger>
+        <MenubarContent>
+          <MenubarLabel>
+            Landmarks
+          </MenubarLabel>
+          <MenubarItem inset @select="setIsImportDialogOpen(true)">Import</MenubarItem>
+          <MenubarSub>
+            <MenubarSubTrigger inset>Export</MenubarSubTrigger>
+            <MenubarSubContent>
+              <MenubarItem @select="downloadCsv">
+                CSV
+              </MenubarItem>
+              <MenubarItem @select="downloadJSON">
+                JSON
+              </MenubarItem>
+            </MenubarSubContent>
+          </MenubarSub>
+        </MenubarContent>
+      </MenubarMenu>
+      <MenubarMenu>
+        <MenubarTrigger>Edit</MenubarTrigger>
+        <MenubarContent>
+          <MenubarItem disabled>
+            Undo <MenubarShortcut>⌘Z</MenubarShortcut>
+          </MenubarItem>
+          <MenubarItem disabled>
+            Redo <MenubarShortcut>⇧⌘Z</MenubarShortcut>
+          </MenubarItem>
+        </MenubarContent>
+      </MenubarMenu>
+      <MenubarMenu>
+        <MenubarTrigger>
+          Settings
+        </MenubarTrigger>
+        <MenubarContent>
+          <MenubarLabel inset>
+            <div class="flex flex-row justify-between h-full w-full"><span>Dark Mode :</span>
+              <Switch :checked="isDark" @update:checked="toggleDark" class="inline-block align-middle ml-auto">
+              </Switch>
+            </div>
+          </MenubarLabel>
+          <MenubarLabel inset>
+            <div class="flex flex-row justify-between h-full w-full"><span>Reverse Mode :</span>
+              <Switch :checked="settingsStore.isLeft" @update:checked="settingsStore.useToggleLeft"
+                class="inline-block align-middle self-end"></Switch>
+            </div>
+          </MenubarLabel>
+        </MenubarContent>
+      </MenubarMenu>
+      <MenubarMenu>
+        <MenubarTrigger>Help</MenubarTrigger>
+        <MenubarContent>
+          <MenubarItem inset @select="setIsHelpGuideDialogOpen(true)">
+            How to use ?
+          </MenubarItem>
+        </MenubarContent>
+      </MenubarMenu>
+    </Menubar>
 
-    <Dialog>
-      <Menubar class="rounded border-b z-100 h-10">
-
-        <MenubarMenu>
-          <MenubarTrigger class="relative">
-            File
-          </MenubarTrigger>
-          <MenubarContent>
-            <MenubarLabel>
-              Landmarks
-            </MenubarLabel>
-            <DialogTrigger asChild>
-              <MenubarItem inset>Import</MenubarItem>
-            </DialogTrigger>
-            <MenubarSub>
-              <MenubarSubTrigger inset>Export</MenubarSubTrigger>
-              <MenubarSubContent>
-                <MenubarItem @select="downloadCsv">
-                  CSV
-                </MenubarItem>
-                <MenubarItem @select="downloadJSON">
-                  JSON
-                </MenubarItem>
-              </MenubarSubContent>
-            </MenubarSub>
-          </MenubarContent>
-        </MenubarMenu>
-        <MenubarMenu>
-          <MenubarTrigger>Edit</MenubarTrigger>
-          <MenubarContent>
-            <MenubarItem disabled>
-              Undo <MenubarShortcut>⌘Z</MenubarShortcut>
-            </MenubarItem>
-            <MenubarItem disabled>
-              Redo <MenubarShortcut>⇧⌘Z</MenubarShortcut>
-            </MenubarItem>
-          </MenubarContent>
-        </MenubarMenu>
-        <MenubarMenu>
-          <MenubarTrigger>
-            Settings
-          </MenubarTrigger>
-          <MenubarContent>
-            <MenubarLabel inset>
-              <div class="flex flex-row justify-between h-full w-full"><span>Dark Mode :</span>
-                <Switch :checked="isDark" @update:checked="toggleDark" class="inline-block align-middle ml-auto">
-                </Switch>
-              </div>
-            </MenubarLabel>
-            <MenubarLabel inset>
-              <div class="flex flex-row justify-between h-full w-full"><span>Reverse Mode :</span>
-                <Switch :checked="settingsStore.isLeft" @update:checked="settingsStore.useToggleLeft"
-                  class="inline-block align-middle self-end"></Switch>
-              </div>
-            </MenubarLabel>
-          </MenubarContent>
-        </MenubarMenu>
-      </Menubar>
+    <!-- Import Dialog-->
+    <Dialog :open="isImportDialogOpen" @update:open="setIsImportDialogOpen">
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Add the landmark file</DialogTitle>
@@ -224,6 +232,21 @@ function importLandmarks(jsonData: string) {
             </DialogClose>
           </DialogFooter>
         </form>
+      </DialogContent>
+    </Dialog>
+
+    <!-- Hel Guide Dialog -->
+    <Dialog :open="isHelpGuideDialogOpen" @update:open="setIsHelpGuideDialogOpen">
+      <DialogContent class="flex h-[85vh] w-[50vw] max-w-none flex-col overflow-hidden">
+        <DialogHeader class="shrink-0">
+          <DialogTitle>App guide</DialogTitle>
+          <DialogDescription>
+            Quick instructions for Depthoptica.
+          </DialogDescription>
+        </DialogHeader>
+        <div id="div-carousel" class="min-h-0 h-full w-full flex-1 overflow-y-auto overflow-x-hidden">
+          <HelpGuide />
+        </div>
       </DialogContent>
     </Dialog>
   </div>

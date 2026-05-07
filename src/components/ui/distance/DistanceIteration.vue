@@ -12,7 +12,7 @@ import { ref, useTemplateRef } from "vue";
 import * as math from "mathjs"
 
 
-import { X, Eraser, Eye, EyeOff } from "lucide-vue-next";
+import { PhX, PhEraser, PhEye, PhEyeClosed } from "@phosphor-icons/vue";
 import { Distance } from "@/data/models/distance";
 import { storeToRefs } from "pinia";
 import SelectScale from "../select-scale/SelectScale.vue";
@@ -119,17 +119,17 @@ function scaleVector(pose : Pose){
                 <div class="flex row justify-end space-x-3">
                     <Button class="relative w-6 h-6 p-0" v-show="props.distance.show" variant="secondary"
                         @click="props.distance.show = false">
-                        <Eye class="relative w-4 h-4 p-0" />
+                        <PhEye class="relative w-4 h-4 p-0" />
                     </Button>
                     <Button class="relative w-6 h-6 p-0" v-show="!props.distance.show" variant="secondary"
                         @click="props.distance.show = true">
-                        <EyeOff class="relative w-4 h-4 p-0" />
+                        <PhEyeClosed class="relative w-4 h-4 p-0" />
                     </Button>
                     <Button class="relative w-6 h-6 p-0" variant="secondary" @click="props.distance.reset()">
-                        <Eraser class="relative w-4 h-4 p-0" />
+                        <PhEraser class="relative w-4 h-4 p-0" />
                     </Button>
                     <Button class="relative w-6 h-6 p-0" variant="destructive" @click="deleteDistance()">
-                        <X class="relative w-4 h-4 p-0" />
+                        <PhX class="relative w-4 h-4 p-0" />
                     </Button>
                 </div>
             </div>
@@ -164,7 +164,7 @@ function scaleVector(pose : Pose){
                             <div class="flex items-center justify-end space-x-3">
                                 <Button class="relative w-6 h-6 p-0" variant="destructive"
                                     @click="removeLandmark(landmark.id)">
-                                    <X class="relative w-4 h-4 p-0" />
+                                    <PhX class="relative w-4 h-4 p-0" />
                                 </Button>
                             </div>
                         </div>

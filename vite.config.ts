@@ -77,8 +77,8 @@ export default defineConfig({
             return 'vendor_d3';
           } if (id.includes('/node_modules/axios')) {
             return 'vendor_axios';
-          }  if (id.includes('/node_modules/lucide-vue-next')) {
-            return 'vendor_lucide-vue-next';
+          }  if (id.includes('/node_modules/@phosphor')) {
+            return 'vendor_phosphor';
           } if (id.includes('/node_modules/pinia')) {
             return 'vendor_pinia';
           } if (id.includes('/node_modules/file-saver')) {

@@ -141,7 +141,7 @@ export class StackImage {
 
             let profiles = new Array<Profile>()
             data.store.profiles.forEach((jsonObject : ProfileObject) => {
-                let profile = new Profile(jsonObject.label, Ends.fromJSON(jsonObject.landmarks), jsonObject.subLandmarks, jsonObject.edgeThreshold, Color(jsonObject.color))
+                let profile = new Profile(jsonObject.label, Ends.fromJSON(jsonObject.landmarks), jsonObject.subLandmarkSegments, jsonObject.edgeThreshold, jsonObject.smooth, Color(jsonObject.color))
                 profiles.push(profile)
             })
 

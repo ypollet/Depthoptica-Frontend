@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 import { storeToRefs } from "pinia";
 import { Profile } from "@/data/models/profile";
 
-import { Circle } from "lucide-vue-next";
+import { PhCircle } from "@phosphor-icons/vue";
 import Button from "../button/Button.vue";
 import type { AcceptableValue } from "reka-ui";
 import Separator from "../separator/Separator.vue";
@@ -33,15 +33,15 @@ function updateSelectedDist(payload: AcceptableValue) {
                 <SelectContent>
                     <SelectGroup>
                         <SelectItem class="h-8" value="-1">
-                            <div class="flex flex-row space-x-2">
-                                <Circle stroke-width="1" />
+                            <div class="flex flex-row space-x-2 items-center">
+                                <PhCircle />
                                 <span class="content-center">New..</span>
                             </div>
                         </SelectItem>
                         <SelectItem class="h-8" v-for="(profile, index) in selectedImage.store.profiles"
                             :value="index.toString()">
-                            <div class="flex flex-row space-x-2">
-                                <Circle stroke-width="1" :fill="profile.getColorHEX()" />
+                            <div class="flex flex-row space-x-2 items-center">
+                                <PhCircle weight="fill" :color="profile.getColorHEX()" />
                                 <span class="content-center">{{ profile.label }}</span>
 
                             </div>

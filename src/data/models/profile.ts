@@ -7,61 +7,74 @@ import type { ProfileObject } from "@/lib/stores"
 export class Profile {
     label: string
     landmarks: Ends
-    subLandmarks: Coordinates[]
+    subLandmarkSegments: Coordinates[][]
     edgeThreshold: string
     color: Color
-    hover_profile : number | undefined
+    hover_profile: number | undefined
+    hover_segment: number | undefined
+    smooth : boolean
     edit_label: boolean
     edit_profile: boolean
     show: boolean
 
-    constructor(label: string, landmarks: Ends | null = null, subLandmarks: Coordinates[] | null = null, edgeThreshold : string | undefined = undefined, color: Color | null = null) {
+    constructor(label: string, landmarks: Ends | null = null, subLandmarkSegments: Coordinates[][] | null = null, edgeThreshold: string | undefined = undefined, smooth : boolean = true, color: Color | null = null) {
         this.label = label
         this.landmarks = landmarks || new Ends
-        this.subLandmarks = subLandmarks || []
+        this.subLandmarkSegments = subLandmarkSegments || []
         this.edgeThreshold = edgeThreshold || "none"
+        this.smooth = smooth
         this.edit_label = false
         this.edit_profile = false
         this.hover_profile = undefined
+        this.hover_segment = undefined
         this.show = true
         this.color = color || Color.rgb([Math.floor(Math.random() * 256), Math.floor(Math.random() * 256), Math.floor(Math.random() * 256)])
     }
 
-    get graph(): Coordinates[] {
-        if (this.subLandmarks.length === 0) {
+    get graph(): Coordinates[][] {
+        if (this.subLandmarkSegments.length === 0) {
             return []
         }
 
-        const origin = this.subLandmarks[0]!
-        
-        let graph =  this.subLandmarks.map((point) => {
-            const dx = point.x - origin.x
-            const dy = point.y - origin.y
+        const origin = this.subLandmarkSegments[0]![0]!
 
-            return {
-                x: dx,
-                y: dy,
-            }
+        let graph = this.subLandmarkSegments.map((segment) => {
+
+            return segment.map((point) => {
+                const dx = point.x - origin.x
+                const dy = point.y - origin.y
+
+                return {
+                    x: dx,
+                    y: dy,
+                }
+            })
+
         })
-        return graph
+        return graph // list of segments
     }
 
-    get length(): Coordinates[] | undefined {
-        if (!this.landmarks.isFull()) {
+    get length(): Coordinates[][] | undefined {
+        if (!this.landmarks.isFull() || this.subLandmarkSegments.length === 0) {
             return undefined
         }
-        let intervals: Coordinates[] = []
+        let intervals: Coordinates[][] = []
 
-        let last : Coordinates | null = null
-        this.subLandmarks.map((point) => {
-            if(last == null){
+        let last: Coordinates | null = null
+
+        this.subLandmarkSegments.forEach((segment) => {
+            let interval : Coordinates[] = []
+            segment.forEach((point) => {
+                if (last == null) {
+                    last = point
+                    return
+                }
+                interval.push(distance_vector2D(last, point))
                 last = point
-                return
-            }
-            intervals.push(distance_vector2D(last, point))
-            last = point
-        });
-        
+            })
+            intervals.push(interval)
+        })
+
         return intervals
     }
 
@@ -106,12 +119,12 @@ export class Profile {
     }
 
     toJSON() {
-        return { label: this.label, color: this.color.hex(), landmarks: this.landmarks.toJSON(), subLandmarks: this.subLandmarks, edgeThreshold: this.edgeThreshold }
+        return { label: this.label, color: this.color.hex(), landmarks: this.landmarks.toJSON(), subLandmarkSegments: this.subLandmarkSegments, edgeThreshold: this.edgeThreshold, smooth: this.smooth }
     }
 
     static fromJSON(json: ProfileObject): Profile {
         let landmarks = Ends.fromJSON(json.landmarks)
-        return new Profile(json.label, landmarks, json.subLandmarks, json.edgeThreshold, Color(json.color))
+        return new Profile(json.label, landmarks, json.subLandmarkSegments, json.edgeThreshold, json.smooth, Color(json.color))
     }
 }
 
@@ -160,7 +173,7 @@ export type EndsObject = {
 }
 
 export type ProfileLandmarks = {
-    start : Coords3D,
-    subLandmarks : Coords3D[],
-    end : Coords3D,
+    start: Coords3D,
+    subLandmarkSegments: Coords3D[][],
+    end: Coords3D,
 }
