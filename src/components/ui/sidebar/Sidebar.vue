@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { LandmarkList } from "@/components/ui/landmark";
-import { DistanceComputed, DistanceList } from "@/components/ui/distance";
+import { DistanceList } from "@/components/ui/distance";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useImagesStore } from "@/lib/stores";
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
