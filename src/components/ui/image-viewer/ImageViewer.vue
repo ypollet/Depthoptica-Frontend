@@ -180,7 +180,7 @@ function drawImage() {
         ctx.lineTo(shiftedMarker.x, shiftedMarker.y)
       }
       ctx.strokeStyle = distance.getColorHEX();
-      ctx.lineWidth = radius / 4;
+      ctx.lineWidth = radius / 2;
       ctx.stroke()
       ctx.closePath()
     })
@@ -210,7 +210,7 @@ function drawImage() {
       ctx.lineTo(shiftedMarker.x, shiftedMarker.y)
 
       ctx.strokeStyle = profile.getColorHEX();
-      ctx.lineWidth = radius / 4;
+      ctx.lineWidth = radius / 2;
       ctx.stroke()
       ctx.closePath()
     })
@@ -325,7 +325,7 @@ function drawImage() {
             x: firstPos.x + vector.x * i / (20 + 1),
             y: firstPos.y + vector.y * i / (20 + 1)
           }
-          drawSubLandmark(ctx, marker, profile.color, radius, vector)
+          drawSubLandmark(ctx, marker, profile.color, radius * 2, vector)
         }
 
         // Draw hover position if exist
