@@ -16,10 +16,11 @@ export class DataRepository implements Repository {
         return this.provider.getImages(objectPath).then((res) => {
             let data = res.data as ProjectData
             data.images.forEach((image) => {
-                image.image = this.getFullImage(objectPath, image.name)
                 if(data.thumbnails){
-                    image.thumbnail = this.getThumbnail(objectPath, image.name)
-                }               
+                    image.thumbnail = this.getThumbnail(objectPath, image.image)
+                }  
+                image.image = this.getFullImage(objectPath, image.image)
+                             
             })
 
             return data

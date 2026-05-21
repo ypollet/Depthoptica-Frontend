@@ -77,20 +77,6 @@ def depthmap(id, image_id):
         pix.tolist()
     )
 
-# send layers
-@app.route("/<id>/<image_id>/layers")
-@cross_origin()
-def layers(id, image_id):
-    directory = f"{DATA_FOLDER}/{id}"
-    if not os.path.exists(directory):
-        abort(404)
-    with open(f"{directory}/depth.json", "r") as f:
-        stack_file = json.load(f)
-    with open(
-        f"{directory}/{stack_file['stacked'][image_id]['layers']}", "rb"
-    ) as image_file:
-        bytes = base64.b64encode(image_file.read())
-    return f"data:image/png;base64,{bytes.decode('ascii')}"
 
 
 # send thumbnail
@@ -123,7 +109,7 @@ def images(id):
         encoded_images.append(
             {
                 "name": image_id,
-                "label": image_data["label"],
+                "image": stack_file["stacked"][image_id]["image"],
                 "size": {
                     "width": image_data["width"],
                     "height": image_data["height"],

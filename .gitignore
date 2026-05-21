@@ -6,3 +6,6 @@ test.py
 *.local
 /dist/*
 Keyence
+create_edges.py
+create_mask.py
+__pycache__

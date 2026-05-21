@@ -69,10 +69,10 @@ function drawChart() {
   let yRange = maxY - minY
 
   // If axises are too disproportionate, make a square chart
-  if (xRange < (yRange / 2)) {
+  if (xRange < (yRange * 0.05)) {
     xRange = yRange
   }
-  if (yRange < (xRange / 2)) {
+  if (yRange < (xRange * 0.05)) {
     yRange = xRange
   }
 

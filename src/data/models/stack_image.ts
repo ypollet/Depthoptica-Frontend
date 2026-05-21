@@ -98,7 +98,6 @@ export type StackImageData = {
     name: string,
     image: string,
     thumbnail: string,
-    label: string,
     size: Size,
     edgeThresholds: Array<string>
     camera : Camera | undefined,
@@ -115,7 +114,6 @@ export class StackImage {
     name: string
     image: string
     thumbnail: string
-    label: string
     size: Size
     edgeThresholds: Array<string>
     camera : Camera
@@ -153,7 +151,6 @@ export class StackImage {
             data.name,
             data.image,
             data.thumbnail,
-            data.label,
             data.size,
             data.edgeThresholds,
             data.camera,
@@ -164,7 +161,6 @@ export class StackImage {
     constructor(name: string,
         image: string,
         thumbnail: string,
-        label: string,
         size: Size,
         edgeThresholds : Array<string> | undefined = undefined,
         camera : Camera | undefined = undefined,
@@ -173,7 +169,6 @@ export class StackImage {
         this.name = name
         this.image = image
         this.thumbnail = thumbnail
-        this.label = label
         this.size = size
         this.edgeThresholds = edgeThresholds ?? []
         this.camera = camera || {zoom : -1, offset:{x:0, y:0}}
@@ -185,7 +180,6 @@ export class StackImage {
             name: this.name,
             image: this.image,
             thumbnail: this.thumbnail,
-            label: this.label,
             size: this.size,
             edgeThresholds: this.edgeThresholds,
             camera: this.camera,
@@ -196,7 +190,7 @@ export class StackImage {
 
 export type ImageName = {
     name: string,
-    label: string,
+    image: string,
 }
 
 export type Size = {

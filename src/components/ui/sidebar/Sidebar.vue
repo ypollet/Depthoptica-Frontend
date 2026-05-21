@@ -28,7 +28,7 @@ onMounted(() => mounted.value = true)
       <ToggleGroup type="single" :model-value="imagesStore.index.toString()"
         @update:modelValue="$event => imagesStore.index = Number($event)">
         <ToggleGroupItem v-for="(stackedImage, index) in imagesStore.images" :value="index.toString()">
-          {{ stackedImage.label ?? "none" }}
+          {{ stackedImage.name ?? "none" }}
         </ToggleGroupItem>
       </ToggleGroup>
     </div>
