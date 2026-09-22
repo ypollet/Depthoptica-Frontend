@@ -1,5 +1,5 @@
 import type { Repository } from "./repository";
-import  { type ProjectData } from "../models/stack_image";
+import  { type ProjectObject } from "../models/stack_image";
 
 import type { DataProvider } from "../providers/providers";
 import type { Coordinates, Coords3D } from "../models/coordinates";
@@ -12,9 +12,9 @@ export class DataRepository implements Repository {
         this.provider = provider
     }
 
-    async getImages(objectPath: string): Promise<ProjectData> {
+    async getImages(objectPath: string): Promise<ProjectObject> {
         return this.provider.getImages(objectPath).then((res) => {
-            let data = res.data as ProjectData
+            let data = res.data as ProjectObject
             data.images.forEach((image) => {
                 if(data.thumbnails){
                     image.thumbnail = this.getThumbnail(objectPath, image.image)

@@ -2,7 +2,6 @@ import { Landmark } from "@/data/models/landmark"
 import Color from "color"
 import { distance_vector2D, distance_vector3D, type Coordinates, type Coords3D } from "./coordinates"
 import { Deque } from "./structures"
-import type { ProfileObject } from "@/lib/stores"
 
 export class Profile {
     label: string
@@ -128,6 +127,15 @@ export class Profile {
     }
 }
 
+export type ProfileObject = {
+  label: string
+  landmarks: EndsObject
+  subLandmarkSegments: Array<Array<Coords3D>>,
+  edgeThreshold?: string,
+  smooth?: boolean,
+  color?: string
+}
+
 export class Ends extends Deque<Landmark> {
 
     static fromJSON(json: EndsObject) {
@@ -147,6 +155,18 @@ export class Ends extends Deque<Landmark> {
 
     get second(): Landmark | null {
         return (this.isFull()) ? this.last! : null;
+    }
+
+    contains(landmark : Landmark | string | null ){
+        let val = false
+        if(this.first){
+            val = val || this.first.equals(landmark)
+        }
+        if(this.second){
+            val = val || this.second.equals(landmark)
+        }
+        return val
+
     }
 
     remove(landmark: Landmark) {

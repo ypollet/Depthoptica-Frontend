@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/vue-query'
 
 import { useImagesStore } from '@/lib/stores';
 
-import { StackImage, type StackImageData } from '@/data/models/stack_image'
+import { StackImage, type StackImageObject } from '@/data/models/stack_image'
 
 import ImageViewer from '@/components/ui/image-viewer/ImageViewer.vue';
 
@@ -24,8 +24,8 @@ async function getImages(): Promise<Array<StackImage>> {
   }
   imagesStore.index = 0
   return repository.getImages(imagesStore.objectPath).then(async (data) => {
-    imagesStore.images = data.images.map((image: StackImageData) => {
-      let stack_image = StackImage.fromData(image)
+    imagesStore.images = data.images.map((image: StackImageObject) => {
+      let stack_image = StackImage.fromJSON(image)
       
       return stack_image
     })

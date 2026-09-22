@@ -2,7 +2,7 @@ import { defineStore, type StateTree } from 'pinia'
 import { Distance } from '@/data/models/distance'
 import { Landmark } from '@/data/models/landmark'
 import Color from 'color'
-import { StackImage, type StackImageData } from '@/data/models/stack_image'
+import { StackImage, type StackImageObject } from '@/data/models/stack_image'
 import {  Profile, type EndsObject } from '@/data/models/profile'
 import destr from "destr"
 import type { Coords3D } from '@/data/models/coordinates'
@@ -14,7 +14,6 @@ const DEFAULT_IMG: StackImage = new StackImage(
   "RBINS Logo",
   "https://www.naturalsciences.be/bundles/8c62adb1e0fbef009ef7c06c69a991890012e203/img/logos/logo.svg",
   "",
-  "RBINS",
   { height: DEF_SIZE, width: DEF_SIZE },
 )
 
@@ -41,6 +40,7 @@ export const useImagesStore = defineStore('images', {
     zoomRect: {top: 0, left: 0, width: 0, height:0}
   }),
   getters: {
+    names: (state) => state.images.map((img) => img.name),
     selectedImage: (state) => (state.index >= 0 && state.index < state.images.length) ? state.images[state.index]! as StackImage : DEFAULT_IMG
   },
   actions: {
@@ -78,8 +78,8 @@ export const useImagesStore = defineStore('images', {
       deserialize: (data) => {
         let state : StateTree = destr(data)
         let images = new Array<StackImage>()
-        state.images.forEach((jsonObject: StackImageData) => {
-          let image = StackImage.fromData(jsonObject)
+        state.images.forEach((jsonObject: StackImageObject) => {
+          let image = StackImage.fromJSON(jsonObject)
           images.push(image)
         })
         state.images = images
@@ -101,13 +101,6 @@ export type LandmarkInfo = {
   selectedProfileIndex: number
 }
 
-export type ProfileObject = {
-  label: string
-  landmarks: EndsObject
-  subLandmarkSegments: Array<Array<Coords3D>>,
-  edgeThreshold?: string,
-  smooth?: boolean,
-  color?: string
-}
+
 
 

@@ -1,7 +1,6 @@
-import type { ProfileObject } from "@/lib/stores"
-import { Distance } from "./distance"
-import { Landmark } from "./landmark"
-import { Ends, Profile } from "./profile"
+import { Distance, type DistanceObject } from "./distance"
+import { Landmark, type LandmarkObject } from "./landmark"
+import { Ends, Profile, type ProfileObject } from "./profile"
 import Color from "color"
 import type { Coordinates } from "./coordinates"
 
@@ -15,46 +14,97 @@ export class Store {
     selectedDistanceIndex: number
     selectedProfileIndex: number
 
-    constructor(landmarks : Array<Landmark> | null = null, distances : Array<Distance> | null = null, profiles : Array<Profile> | null = null, adjustFactor = 1, scale="mm", tab="landmarks", selectedDistanceIndex = -1, selectedProfileIndex = -1){
+    constructor(landmarks: Array<Landmark> | null = null, distances: Array<Distance> | null = null, profiles: Array<Profile> | null = null, adjustFactor = 1, scale = "mm", tab = "landmarks", selectedDistanceIndex = -1, selectedProfileIndex = -1) {
         this.landmarks = landmarks || Array<Landmark>()
         this.distances = distances || Array<Distance>()
         this.profiles = profiles || Array<Profile>()
         this.adjustFactor = adjustFactor
         this.scale = scale
         this.tab = tab
-        this.selectedDistanceIndex = selectedDistanceIndex 
+        this.selectedDistanceIndex = selectedDistanceIndex
         this.selectedProfileIndex = selectedProfileIndex
     }
 
-    get selectedDistance() : Distance | null{
-        return  (this.selectedDistanceIndex >= 0 && this.selectedDistanceIndex < this.distances.length) ? this.distances[this.selectedDistanceIndex] as Distance : null
+    get selectedDistance(): Distance | null {
+        return (this.selectedDistanceIndex >= 0 && this.selectedDistanceIndex < this.distances.length) ? this.distances[this.selectedDistanceIndex] as Distance : null
     }
-     get selectedProfile() : Profile | null{
-        return  (this.selectedProfileIndex >= 0 && this.selectedProfileIndex < this.profiles.length) ? this.profiles[this.selectedProfileIndex] as Profile : null
+    get selectedProfile(): Profile | null {
+        return (this.selectedProfileIndex >= 0 && this.selectedProfileIndex < this.profiles.length) ? this.profiles[this.selectedProfileIndex] as Profile : null
+    }
+
+    updateStore(other: Store) {
+        console.log("Updating landmarks")
+        other.landmarks.forEach((new_landmark) => {
+            if (!this.checkUniqueID(new_landmark.id)) {
+                new_landmark.id = this.generateID()
+            }
+            this.landmarks.push(new_landmark)
+        })
+
+        console.log("updating distances")
+        let oldDistanceLen = this.distances.length
+        other.distances.forEach((new_distance) => {
+            new_distance.landmarks.forEach((new_landmark) => {
+                if (!this.checkUniqueID(new_landmark.id)) {
+                    new_landmark.id = this.generateID()
+                }
+            })
+            this.distances.push(new_distance)
+        })
+
+        console.log("updating profiles")
+        let oldProfileLen = this.profiles.length
+        other.profiles.forEach((new_profile) => {
+            new_profile.landmarks.forEach((new_landmark) => {
+                if (!this.checkUniqueID(new_landmark.id)) {
+                    new_landmark.id = this.generateID()
+                }
+            })
+            this.profiles.push(new_profile)
+        })
+
+        console.log("Updating the rest")
+
+        this.adjustFactor = other.adjustFactor
+        this.scale = other.scale
+        this.tab = other.tab
+        this.selectedDistanceIndex = oldDistanceLen + other.selectedDistanceIndex
+        this.selectedProfileIndex = oldProfileLen + other.selectedProfileIndex
+
+        console.log("Distances", this.selectedDistanceIndex,  oldDistanceLen,  other.selectedDistanceIndex)
+        console.log("Profiles", this.selectedProfileIndex,  oldProfileLen,  other.selectedProfileIndex)
+    }
+
+    checkUniqueID(id: string): boolean {
+        if (this.landmarks.filter(e => e.equals(id)).length != 0) {
+            return false
+        }
+        let checkDistances = this.distances.map(distance => {
+            if (distance.landmarks.filter(e => e.equals(id)).length != 0) {
+                return false
+            }
+            return true
+        })
+
+        if (!checkDistances.every(v => v == true)) {
+            return false
+        }
+
+        let checkProfiles = this.profiles.map((profile) => {
+            if (profile.landmarks.contains(id)) {
+                return false
+            }
+            return true
+        })
+        return checkProfiles.every(v => v == true)
     }
 
     generateID() {
-      let check: boolean = false
-      let id: string = ""
-      while (!check) {
-        id = (Math.random() + 1).toString(36).substring(2);
-        this.distances.forEach(distance => {
-          if (distance.landmarks.filter(e => e.equals(id)).length == 0) {
-            check = true
-          }
-        })
-        if (this.landmarks.filter(e => e.equals(id)).length == 0) {
-          check = true
+        let id: string = (Math.random() + 1).toString(36).substring(2);
+        while (!this.checkUniqueID(id)) {
+            id = (Math.random() + 1).toString(36).substring(2);
         }
-        this.profiles.forEach(profile => {
-          profile.landmarks.forEach(e => {
-            if(e.equals(id)){
-              check = true
-            }
-          })
-        })
-      }
-      return id;
+        return id;
     }
 
     toJSON() {
@@ -69,11 +119,23 @@ export class Store {
             selectedProfileIndex: this.selectedProfileIndex,
         }
     }
+
+    static fromJSON(jsonObject: StoreObject) {
+        return new Store(jsonObject.landmarks.map((landmarkObject) => Landmark.fromJSON(landmarkObject)),
+            jsonObject.distances.map((distanceObject) => Distance.fromJSON(distanceObject)),
+            jsonObject.profiles.map((profileObject) => Profile.fromJSON(profileObject)),
+            jsonObject.adjustFactor,
+            jsonObject.scale,
+            jsonObject.tab,
+            jsonObject.selectedDistanceIndex,
+            jsonObject.selectedProfileIndex
+        )
+    }
 }
 
-export type StoreData = {
-    landmarks: Array<Landmark>
-    distances: Array<Distance>
+export type StoreObject = {
+    landmarks: Array<LandmarkObject>
+    distances: Array<DistanceObject>
     profiles: Array<ProfileObject>
     adjustFactor: number
     scale: string
@@ -83,26 +145,27 @@ export type StoreData = {
 }
 
 export type Camera = {
-    zoom : number,
-    offset :Coordinates
+    zoom: number,
+    offset: Coordinates
 }
 
 export type Intrinsics = {
-    fx : number,
-    fy : number,
-    cx : number,
-    cy : number
+    fx: number,
+    fy: number,
+    cx: number,
+    cy: number
 }
 
-export type StackImageData = {
-    name: string,
-    image: string,
-    thumbnail: string,
-    size: Size,
-    edgeThresholds: Array<string>
-    camera : Camera | undefined,
-    store : StoreData | undefined,
-}
+export type StackImageObject
+    = {
+        name: string,
+        image: string,
+        thumbnail: string,
+        size: Size,
+        edgeThresholds: Array<string>
+        camera: Camera | undefined,
+        store: StoreObject | undefined,
+    }
 
 export type Rect = {
     top: number,
@@ -116,29 +179,26 @@ export class StackImage {
     thumbnail: string
     size: Size
     edgeThresholds: Array<string>
-    camera : Camera
+    camera: Camera
     store: Store
-    
 
-    static fromData(data : StackImageData){
+
+    static fromJSON(data: StackImageObject) {
         let store = undefined
-        if(data.store != null){
-            
+        if (data.store != null) {
+
             let landmarks = new Array<Landmark>()
-            data.store.landmarks.forEach((jsonObject: Landmark) => {
-                let landmark = new Landmark(jsonObject.id, jsonObject.label, jsonObject.pos, jsonObject.pose, Color(jsonObject.color))
-                landmarks.push(landmark)
+            data.store.landmarks.forEach((jsonObject: LandmarkObject) => {
+                landmarks.push(Landmark.fromJSON(jsonObject))
             })
 
             let distances = new Array<Distance>()
-            data.store.distances.forEach((jsonObject: Distance) => {
-                let landmarks = jsonObject.landmarks.map((x: Landmark) => new Landmark(x.id, x.label, x.pos, x.pose, Color(x.color)))
-                let distance = new Distance(jsonObject.label, landmarks, Color(jsonObject.color))
-                distances.push(distance)
+            data.store.distances.forEach((jsonObject: DistanceObject) => {
+                distances.push(Distance.fromJSON(jsonObject))
             })
 
             let profiles = new Array<Profile>()
-            data.store.profiles.forEach((jsonObject : ProfileObject) => {
+            data.store.profiles.forEach((jsonObject: ProfileObject) => {
                 let profile = new Profile(jsonObject.label, Ends.fromJSON(jsonObject.landmarks), jsonObject.subLandmarkSegments, jsonObject.edgeThreshold, jsonObject.smooth, Color(jsonObject.color))
                 profiles.push(profile)
             })
@@ -162,16 +222,16 @@ export class StackImage {
         image: string,
         thumbnail: string,
         size: Size,
-        edgeThresholds : Array<string> | undefined = undefined,
-        camera : Camera | undefined = undefined,
+        edgeThresholds: Array<string> | undefined = undefined,
+        camera: Camera | undefined = undefined,
         store: Store | undefined = undefined
-        ) {
+    ) {
         this.name = name
         this.image = image
         this.thumbnail = thumbnail
         this.size = size
         this.edgeThresholds = edgeThresholds ?? []
-        this.camera = camera || {zoom : -1, offset:{x:0, y:0}}
+        this.camera = camera || { zoom: -1, offset: { x: 0, y: 0 } }
         this.store = store || new Store()
     }
 
@@ -198,8 +258,8 @@ export type Size = {
     width: number
 }
 
-export type ProjectData = {
-    images: Array<StackImageData>,
+export type ProjectObject = {
+    images: Array<StackImageObject>,
     thumbnails: boolean,
 }
 

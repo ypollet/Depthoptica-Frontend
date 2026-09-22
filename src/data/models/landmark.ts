@@ -35,8 +35,16 @@ export class Landmark {
         return this.id == other.id
     }
 
+    toCSV(image_name : string, distance_name : string){
+        return [image_name, distance_name, this.label, this.getColorHEX(), this.pose.x.toString(), this.pose.y.toString(), this.pose.z.toString()]
+    }
+
     toJSON() {
         return { id: this.id, label: this.label, color: this.color.hex(), pos: this.pos, pose: this.pose}
+    }
+
+    static fromJSON(json : LandmarkObject) : Landmark{
+        return new Landmark(json.id, json.label, json.pos, json.pose, Color(json.color))
     }
 
     getId() : string {
@@ -76,4 +84,12 @@ export class Landmark {
     setEdit(edit : boolean){
         this.edit = edit
     }
+}
+
+export type LandmarkObject = {
+    id: string
+    label: string
+    pos: Coordinates
+    pose: Coords3D
+    color: string
 }

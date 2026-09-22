@@ -1,4 +1,4 @@
-import { Landmark } from "@/data/models/landmark"
+import { Landmark, type LandmarkObject } from "@/data/models/landmark"
 import Color from "color"
 import { distance_vector3D, type Coords3D } from "./coordinates"
 
@@ -59,4 +59,15 @@ export class Distance {
     toJSON() {
         return { label: this.label, color: this.color.hex(), landmarks: this.landmarks.map((x) => x.toJSON()) }
     }
+
+    static fromJSON(jsonObject : DistanceObject) {
+        let landmarks = jsonObject.landmarks.map((landmarkObject) => Landmark.fromJSON(landmarkObject))
+        return new Distance(jsonObject.label, landmarks, Color(jsonObject.color))
+    }
+}
+
+export type DistanceObject = {
+    label: string
+    landmarks: Array<LandmarkObject>
+    color: string
 }

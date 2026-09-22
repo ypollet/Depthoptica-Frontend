@@ -320,13 +320,30 @@ function drawImage() {
           y: lastPos.y - firstPos.y
         }
 
-        for (let i = 1; i <= 20; i++) {
+        
+        let size_vector = Math.sqrt((vector.x)**2 + (vector.y)**2)
+        let normalized_vector = {
+          x: vector.x / size_vector,
+          y: vector.y / size_vector
+        }
+        let i = 1
+        while(i * 100 < size_vector){
           let marker = {
-            x: firstPos.x + vector.x * i / (20 + 1),
-            y: firstPos.y + vector.y * i / (20 + 1)
+            x: firstPos.x + normalized_vector.x * i * 100,
+            y: firstPos.y + normalized_vector.y * i * 100
+          }
+          drawSubLandmark(ctx, marker, profile.color, radius * 2, vector)
+          i += 1
+        }
+        /*
+        for (let i = 1; i <= sub_markers; i++) {
+          let marker = {
+            x: firstPos.x + vector.x * i / (sub_markers + 1),
+            y: firstPos.y + vector.y * i / (sub_markers + 1)
           }
           drawSubLandmark(ctx, marker, profile.color, radius * 2, vector)
         }
+        */
 
         // Draw hover position if exist
         if (profile.hover_profile != undefined) {

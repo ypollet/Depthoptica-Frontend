@@ -33,10 +33,11 @@ import { Distance } from '@/data/models/distance'
 
 
 import { useToggle, useDark } from '@vueuse/core'
-import { useSettingsStore, useImagesStore } from '@/lib/stores'
+import { useSettingsStore, useImagesStore, type LandmarkInfo } from '@/lib/stores'
 import saveAs from 'file-saver';
 import { storeToRefs } from 'pinia'
 import { ref } from 'vue'
+import { Store, type StackImage } from '@/data/models/stack_image'
 
 const settingsStore = useSettingsStore()
 const imagesStore = useImagesStore()
@@ -52,22 +53,31 @@ const toggleDark = useToggle(isDark)
 function downloadCsv() {
 
   const rows = [
-    ["Distance", "Label", "Color", "Pose_X", "Pose_Y", "Image", "ImageLabel"]
+    ["Image", "Distance", "Label", "Color", "Pose_X", "Pose_Y", "Pose_Z"]
   ];
 
-  selectedImage.value.store.distances.forEach((distance) => {
-    distance.landmarks.forEach((landmark) => {
-      landmark = landmark as Landmark
-      let pose = landmark.pose
-      let row: Array<string> = [distance.label, landmark.label, landmark.getColorHEX(), pose.x.toString(), pose.y.toString(), selectedImage.value.name, selectedImage.value.name]
-      rows.push(row)
+  imagesStore.images.forEach((image) => {
+    image.store.landmarks.forEach((landmark) => {
+      rows.push(landmark.toCSV(image.name, ""))
+    })
+    image.store.distances.forEach((distance) => {
+      distance.landmarks.forEach((landmark) => {
+        landmark = landmark as Landmark
+        rows.push(landmark.toCSV(image.name, distance.label))
+      })
+    })
+    image.store.profiles.forEach((profile) => {
+      profile.landmarks.forEach((landmark) => {
+        landmark = landmark as Landmark
+        rows.push(landmark.toCSV(image.name, profile.label))
+      })
     })
   })
 
   let csvContent = rows.map(e => e.join(";")).join("\n");
 
   let blob: Blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-  saveAs(blob, "landmarks_" + imagesStore.objectPath + ".csv")
+  saveAs(blob, "landmarks_" + imagesStore.objectPath + "_" + new Date().getTime() + ".csv")
 
 }
 
@@ -75,32 +85,9 @@ function downloadJSON() {
 
   const data: Map<string, any> = new Map()
 
-  data.set('scale_factor', selectedImage.value.store.adjustFactor)
-
-  let distances = new Array<Object>()
-
-  selectedImage.value.store.distances.forEach((distance) => {
-    let listLandmarks = new Array<Object>()
-
-    distance.landmarks.forEach((landmark) => {
-      listLandmarks.push({
-        "id": landmark.id,
-        "label": landmark.label,
-        "color": landmark.getColorHEX(),
-        "pose": landmark.pose
-      })
-    })
-
-    let distanceObject = {
-      "label": distance.label,
-      "color": distance.getColorHEX(),
-      "landmarks": JSON.parse(JSON.stringify(listLandmarks))
-    }
-    distances.push(distanceObject)
+  imagesStore.images.forEach((image) => {
+    data.set(image.name, image.store.toJSON())
   })
-  data.set('distances', distances)
-
-
   var blob = new Blob([JSON.stringify(Object.fromEntries(data.entries()))], { type: "application/json;charset=utf-8" });
   saveAs(blob, "landmarks_" + imagesStore.objectPath + "_" + new Date().getTime() + ".json");
 
@@ -124,23 +111,22 @@ function onSubmit(event: Event) {
 function importLandmarks(jsonData: string) {
 
   let jsonObject = JSON.parse(jsonData)
-  let mapData: Map<string, any> = new Map(Object.entries(jsonObject));
-  selectedImage.value.store.adjustFactor = mapData.get("scale_factor")
+  let importedStores: Map<string, any> = new Map(Object.entries(jsonObject));
 
+  imagesStore.images.forEach((image) => {
 
-  let mapDistances: Array<Object> = mapData.get("landmarks")
-  mapDistances.forEach((distanceObject: Object, index: number) => {
-    let distanceMap = new Map(Object.entries(distanceObject));
+    image = image as StackImage
+    let store = image.store
+    let storeObject = importedStores.get(image.name)
+    if (!storeObject) {
+      return
+    }
+    // Combine two stores
+    console.log("Combining store for " + image.name)
+    let importedStore = Store.fromJSON(storeObject)
+    store.updateStore(importedStore)
 
-    let landmarks = distanceMap.get("landmarks").map((landmarkObject: Object) => {
-      let landmarkMap = new Map(Object.entries(landmarkObject))
-      return new Landmark(selectedImage.value.store.generateID(), landmarkMap.get("label"), landmarkMap.get("pos"), landmarkMap.get("pose"), Color(landmarkMap.get("color")))
-    })
-
-    let distance = new Distance(distanceMap.get("label"), landmarks, Color(distanceMap.get("color")))
-    selectedImage.value.store.distances.push(distance)
   })
-
 }
 
 const isImportDialogOpen = ref<boolean>(false)
