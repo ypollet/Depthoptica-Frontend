@@ -33,7 +33,6 @@ export class Store {
     }
 
     updateStore(other: Store) {
-        console.log("Updating landmarks")
         other.landmarks.forEach((new_landmark) => {
             if (!this.checkUniqueID(new_landmark.id)) {
                 new_landmark.id = this.generateID()
@@ -41,7 +40,6 @@ export class Store {
             this.landmarks.push(new_landmark)
         })
 
-        console.log("updating distances")
         let oldDistanceLen = this.distances.length
         other.distances.forEach((new_distance) => {
             new_distance.landmarks.forEach((new_landmark) => {
@@ -52,7 +50,6 @@ export class Store {
             this.distances.push(new_distance)
         })
 
-        console.log("updating profiles")
         let oldProfileLen = this.profiles.length
         other.profiles.forEach((new_profile) => {
             new_profile.landmarks.forEach((new_landmark) => {
@@ -63,16 +60,11 @@ export class Store {
             this.profiles.push(new_profile)
         })
 
-        console.log("Updating the rest")
-
         this.adjustFactor = other.adjustFactor
         this.scale = other.scale
         this.tab = other.tab
         this.selectedDistanceIndex = oldDistanceLen + other.selectedDistanceIndex
         this.selectedProfileIndex = oldProfileLen + other.selectedProfileIndex
-
-        console.log("Distances", this.selectedDistanceIndex,  oldDistanceLen,  other.selectedDistanceIndex)
-        console.log("Profiles", this.selectedProfileIndex,  oldProfileLen,  other.selectedProfileIndex)
     }
 
     checkUniqueID(id: string): boolean {
