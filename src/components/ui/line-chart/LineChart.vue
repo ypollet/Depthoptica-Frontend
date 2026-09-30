@@ -72,7 +72,11 @@ function drawChart() {
   if (xRange < (yRange * 0.05)) {
     xRange = yRange
   }
+<<<<<<< HEAD
   if (yRange < (xRange * 0.05)) {
+=======
+  if (yRange < (xRange / 10)) {
+>>>>>>> 6d2ad4e (Fix : range problem)
     yRange = xRange
   }
 
