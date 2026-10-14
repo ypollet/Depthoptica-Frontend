@@ -36,14 +36,14 @@ onMounted(() => mounted.value = true)
 
       <Tabs :model-value="imagesStore.selectedImage.store.tab" @update:model-value="$event => imagesStore.selectedImage.store.tab = $event.toString()"
         class="w-full my-4">
-        <TabsList class="grid w-full grid-cols-3">
-          <TabsTrigger value="landmarks">
+        <TabsList class="flex flex-wrap justify-center w-full h-auto">
+          <TabsTrigger value="landmarks" class="basis-1/3">
             Landmarks
           </TabsTrigger>
-          <TabsTrigger value="distances">
+          <TabsTrigger value="distances" class="basis-1/3">
             Distances
           </TabsTrigger>
-          <TabsTrigger value="profiles">
+          <TabsTrigger value="profiles" class="basis-1/3">
             Profilometer
           </TabsTrigger>
         </TabsList>
@@ -52,7 +52,6 @@ onMounted(() => mounted.value = true)
         </TabsContent>
         <TabsContent value="distances">
           <DistanceList />
-
         </TabsContent>
         <TabsContent value="profiles">
           <ProfileList />

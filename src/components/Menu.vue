@@ -26,10 +26,8 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { HelpGuide } from './ui/help'
-import Color from "color"
 
 import { Landmark } from '@/data/models/landmark'
-import { Distance } from '@/data/models/distance'
 
 
 import { useToggle, useDark } from '@vueuse/core'
@@ -49,6 +47,12 @@ const isDark = useDark({
 })
 
 const toggleDark = useToggle(isDark)
+
+function date2string(date : Date) {
+  let day = `${date.getFullYear()}${(date.getMonth() + 1).toString().padStart(2,'0')}${date.getDate().toString().padStart(2,'0')}`
+  let time = `${date.getHours().toString().padStart(2,'0')}${date.getMinutes().toString().padStart(2,'0')}${date.getSeconds().toString().padStart(2,'0')}`
+  return `${day}-${time}`;
+}
 
 function downloadCsv() {
 
@@ -77,7 +81,7 @@ function downloadCsv() {
   let csvContent = rows.map(e => e.join(";")).join("\n");
 
   let blob: Blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-  saveAs(blob, "landmarks_" + imagesStore.objectPath + "_" + new Date().getTime() + ".csv")
+  saveAs(blob, "anno_depth_" + imagesStore.objectPath + "_" + new Date().getTime() + ".csv")
 
 }
 
@@ -89,7 +93,9 @@ function downloadJSON() {
     data.set(image.name, image.store.toJSON())
   })
   var blob = new Blob([JSON.stringify(Object.fromEntries(data.entries()))], { type: "application/json;charset=utf-8" });
-  saveAs(blob, "landmarks_" + imagesStore.objectPath + "_" + new Date().getTime() + ".json");
+
+  let formattedDate = date2string(new Date())
+  saveAs(blob, "anno_depth_" + imagesStore.objectPath + "_" + formattedDate + ".json");
 
 }
 
@@ -109,7 +115,6 @@ function onSubmit(event: Event) {
 
 }
 function importLandmarks(jsonData: string) {
-
   let jsonObject = JSON.parse(jsonData)
   let importedStores: Map<string, any> = new Map(Object.entries(jsonObject));
 
@@ -122,7 +127,6 @@ function importLandmarks(jsonData: string) {
       return
     }
     // Combine two stores
-    console.log("Combining store for " + image.name)
     let importedStore = Store.fromJSON(storeObject)
     store.updateStore(importedStore)
 
