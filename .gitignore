@@ -12,3 +12,4 @@ create_mask.py
 __pycache__
 =======
 >>>>>>> 89d7ae6 (Fix : dict of stacked images changed from image_name to image_label)
+src/assets/fonts/DejaVuSans.ttf
