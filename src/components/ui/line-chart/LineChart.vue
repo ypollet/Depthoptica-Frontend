@@ -311,7 +311,7 @@ watch(() => selectedImage.value.store.scale, drawChart)
 
 function updateProfile() {
     console.log(props.profile.smooth)
-    repository.computeProfile(imagesStore.objectPath, selectedImage.value.name, props.profile).then((profileLandmarks) => {
+    repository.computeProfile(imagesStore.objectPath, selectedImage.value.id, props.profile).then((profileLandmarks) => {
       if (profileLandmarks == undefined) {
         console.log("undefined")
         return;

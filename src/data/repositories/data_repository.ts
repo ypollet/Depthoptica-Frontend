@@ -17,9 +17,9 @@ export class DataRepository implements Repository {
             let data = res.data as ProjectObject
             data.images.forEach((image) => {
                 if(data.thumbnails){
-                    image.thumbnail = this.getThumbnail(objectPath, image.image)
+                    image.thumbnail = this.getThumbnail(objectPath, image.id)
                 }  
-                image.image = this.getFullImage(objectPath, image.image)
+                image.image = this.getFullImage(objectPath, image.id)
                              
             })
 

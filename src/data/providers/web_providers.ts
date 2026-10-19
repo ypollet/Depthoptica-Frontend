@@ -2,7 +2,6 @@ import type { DataProvider } from "./providers";
 
 import axios, { type AxiosResponse } from "axios";
 import type { Coordinates } from "../models/coordinates";
-import type { Profile } from "../models/profile";
 
 export class WebProvider implements DataProvider {
     server: string;

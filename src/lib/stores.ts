@@ -11,7 +11,8 @@ const DEF_SIZE = 200
 export const DEFAULT_TAB = "viewer"
 
 const DEFAULT_IMG: StackImage = new StackImage(
-  "RBINS Logo",
+  "RBINs",
+  "Logo",
   "https://www.naturalsciences.be/bundles/8c62adb1e0fbef009ef7c06c69a991890012e203/img/logos/logo.svg",
   "",
   { height: DEF_SIZE, width: DEF_SIZE },
@@ -40,7 +41,7 @@ export const useImagesStore = defineStore('images', {
     zoomRect: {top: 0, left: 0, width: 0, height:0}
   }),
   getters: {
-    names: (state) => state.images.map((img) => img.name),
+    names: (state) => state.images.map((img) => img.id),
     selectedImage: (state) => (state.index >= 0 && state.index < state.images.length) ? state.images[state.index]! as StackImage : DEFAULT_IMG
   },
   actions: {

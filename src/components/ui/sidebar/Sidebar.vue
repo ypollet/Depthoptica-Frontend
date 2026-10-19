@@ -26,9 +26,9 @@ onMounted(() => mounted.value = true)
     </div>
     <div class="flex-none space-y-4 py-4" v-if="imagesStore.images != undefined">
       <ToggleGroup type="single" :model-value="imagesStore.index.toString()"
-        @update:modelValue="$event => imagesStore.index = Number($event)">
+        @update:modelValue="$event => {if($event != undefined){ imagesStore.index = Number($event)}}">
         <ToggleGroupItem v-for="(stackedImage, index) in imagesStore.images" :value="index.toString()">
-          {{ stackedImage.name ?? "none" }}
+          {{ stackedImage.label }}
         </ToggleGroupItem>
       </ToggleGroup>
     </div>

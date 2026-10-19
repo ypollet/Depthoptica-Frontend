@@ -150,7 +150,8 @@ export type Intrinsics = {
 
 export type StackImageObject
     = {
-        name: string,
+        id: string,
+        label: string,
         image: string,
         thumbnail: string,
         size: Size,
@@ -166,7 +167,8 @@ export type Rect = {
     height: number,
 }
 export class StackImage {
-    name: string
+    id: string
+    label: string
     image: string
     thumbnail: string
     size: Size
@@ -200,7 +202,8 @@ export class StackImage {
 
 
         return new StackImage(
-            data.name,
+            data.id,
+            data.label,
             data.image,
             data.thumbnail,
             data.size,
@@ -210,7 +213,9 @@ export class StackImage {
         )
     }
 
-    constructor(name: string,
+    constructor(
+        id: string,
+        label: string,
         image: string,
         thumbnail: string,
         size: Size,
@@ -218,7 +223,8 @@ export class StackImage {
         camera: Camera | undefined = undefined,
         store: Store | undefined = undefined
     ) {
-        this.name = name
+        this.id = id
+        this.label = label
         this.image = image
         this.thumbnail = thumbnail
         this.size = size
@@ -229,7 +235,8 @@ export class StackImage {
 
     toJSON() {
         return {
-            name: this.name,
+            id: this.id,
+            label: this.label,
             image: this.image,
             thumbnail: this.thumbnail,
             size: this.size,

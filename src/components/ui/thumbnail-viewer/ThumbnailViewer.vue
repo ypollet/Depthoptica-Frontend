@@ -86,7 +86,7 @@ function updateRect() {
       </div>
       <img class="object-fit" ref="base_image"
         :src="imagesStore.selectedImage.thumbnail || imagesStore.selectedImage.image"
-        :alt="imagesStore.selectedImage.name" aspect-ratio="auto" draggable="false">
+        :alt="imagesStore.selectedImage.label" aspect-ratio="auto" draggable="false">
     </div>
 </template>
 

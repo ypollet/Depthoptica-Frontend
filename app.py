@@ -108,8 +108,8 @@ def images(id):
         # file name of stacked image
         encoded_images.append(
             {
-                "name": image_id,
-                "image": stack_file["stacked"][image_id]["image"],
+                "id": image_id,
+                "label": stack_file["stacked"][image_id]["label"],
                 "size": {
                     "width": image_data["width"],
                     "height": image_data["height"],

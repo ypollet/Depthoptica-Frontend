@@ -26,7 +26,7 @@ const props = defineProps<{
 
 watch(selectedImage, () => {
   base_image.value.src = imagesStore.selectedImage.thumbnail || imagesStore.selectedImage.image
-  base_image.value.alt = (imagesStore.selectedImage.thumbnail) ? 'Thumbnail of ' + imagesStore.selectedImage.name : imagesStore.selectedImage.name
+  base_image.value.alt = (imagesStore.selectedImage.thumbnail) ? 'Thumbnail of ' + imagesStore.selectedImage.id : imagesStore.selectedImage.id
   if (imagesStore.selectedImage.thumbnail) {
     base_image.value.onload = (ev: Event) => loaded()
   } else {
@@ -69,7 +69,7 @@ if (imagesStore.selectedImage.thumbnail) {
   }
 }
 base_image.value.src = imagesStore.selectedImage.thumbnail || imagesStore.selectedImage.image
-base_image.value.alt = (imagesStore.selectedImage.thumbnail) ? 'Thumbnail of ' + imagesStore.selectedImage.name : imagesStore.selectedImage.name
+base_image.value.alt = (imagesStore.selectedImage.thumbnail) ? 'Thumbnail of ' + imagesStore.selectedImage.id : imagesStore.selectedImage.id
 
 const canvas = useTemplateRef('canvas')
 
@@ -106,9 +106,9 @@ function loaded() {
     if (imagesStore.selectedImage.camera.zoom <= 0) {
       screenFit()
     }
-    let image_name = imagesStore.selectedImage.name
+    let image_name = imagesStore.selectedImage.id
     setTimeout(() => {
-      if (image_name == imagesStore.selectedImage.name) {
+      if (image_name == imagesStore.selectedImage.id) {
         nextTick(() => {
           // Just verifies we draw the right image
           if (base_image.value.alt.endsWith(image_name)) {
@@ -697,7 +697,7 @@ function stopDrag(event: MouseEvent) {
     landmark.pos = pos
     if (profileDragged.value != null) {
       let profile = profileDragged.value as Profile
-      repository.computeProfile(imagesStore.objectPath, imagesStore.selectedImage.name, profile).then((profileLandmarks) => {
+      repository.computeProfile(imagesStore.objectPath, imagesStore.selectedImage.id, profile).then((profileLandmarks) => {
         if (profileLandmarks == undefined) {
           return;
         }
@@ -706,7 +706,7 @@ function stopDrag(event: MouseEvent) {
         profile.landmarks.last!.pose = profileLandmarks.end
       })
     } else {
-      repository.computeLandmark(imagesStore.objectPath, imagesStore.selectedImage.name, pos).then((pose) => {
+      repository.computeLandmark(imagesStore.objectPath, imagesStore.selectedImage.id, pos).then((pose) => {
         landmark.setPose(pose)
       })
     }
@@ -795,7 +795,7 @@ async function addDistance(pos: Coordinates) {
 async function addLandmarkToProfile(pos: Coordinates, profile: Profile) {
   let landmark = createLandmark(pos, profile.color)
   profile.addLandmark(await landmark)
-  repository.computeProfile(imagesStore.objectPath, selectedImage.value.name, profile).then((profileLandmarks: ProfileLandmarks | undefined) => {
+  repository.computeProfile(imagesStore.objectPath, selectedImage.value.id, profile).then((profileLandmarks: ProfileLandmarks | undefined) => {
     if (profileLandmarks == undefined) {
       return;
     }
@@ -814,7 +814,7 @@ async function addProfile(pos: Coordinates) {
 
 async function createLandmark(pos: Coordinates, color: Color | undefined = undefined): Promise<Landmark> {
   let id = selectedImage.value.store.generateID()
-  let pose = await repository.computeLandmark(imagesStore.objectPath, imagesStore.selectedImage.name, pos).then((pose) => {
+  let pose = await repository.computeLandmark(imagesStore.objectPath, imagesStore.selectedImage.id, pos).then((pose) => {
     return pose
   })
 

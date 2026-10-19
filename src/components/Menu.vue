@@ -62,18 +62,18 @@ function downloadCsv() {
 
   imagesStore.images.forEach((image) => {
     image.store.landmarks.forEach((landmark) => {
-      rows.push(landmark.toCSV(image.name, ""))
+      rows.push(landmark.toCSV(image.id, ""))
     })
     image.store.distances.forEach((distance) => {
       distance.landmarks.forEach((landmark) => {
         landmark = landmark as Landmark
-        rows.push(landmark.toCSV(image.name, distance.label))
+        rows.push(landmark.toCSV(image.id, distance.label))
       })
     })
     image.store.profiles.forEach((profile) => {
       profile.landmarks.forEach((landmark) => {
         landmark = landmark as Landmark
-        rows.push(landmark.toCSV(image.name, profile.label))
+        rows.push(landmark.toCSV(image.id, profile.label))
       })
     })
   })
@@ -90,7 +90,7 @@ function downloadJSON() {
   const data: Map<string, any> = new Map()
 
   imagesStore.images.forEach((image) => {
-    data.set(image.name, image.store.toJSON())
+    data.set(image.id, image.store.toJSON())
   })
   var blob = new Blob([JSON.stringify(Object.fromEntries(data.entries()))], { type: "application/json;charset=utf-8" });
 
@@ -122,7 +122,7 @@ function importLandmarks(jsonData: string) {
 
     image = image as StackImage
     let store = image.store
-    let storeObject = importedStores.get(image.name)
+    let storeObject = importedStores.get(image.id)
     if (!storeObject) {
       return
     }
