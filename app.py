@@ -58,7 +58,12 @@ def welcome(id):
 @app.route("/<id>/<image_id>/full-image")
 @cross_origin()
 def image(id, image_id):
-    return send_from_directory(f"{DATA_FOLDER}/{id}", image_id)
+    directory = f"{DATA_FOLDER}/{id}"
+    if not os.path.exists(directory):
+        abort(404)
+    with open(f"{directory}/depth.json", "r") as f:
+        stack_file = json.load(f)
+    return send_from_directory(f"{DATA_FOLDER}/{id}", stack_file['stacked'][image_id]['image'])
 
 
 # send depthmap
@@ -83,7 +88,13 @@ def depthmap(id, image_id):
 @app.route("/<id>/<image_id>/thumbnail")
 @cross_origin()
 def thumbnail(id, image_id):
-    return send_from_directory(f"{DATA_FOLDER}/{id}/thumbnails", image_id)
+    directory = f"{DATA_FOLDER}/{id}"
+    if not os.path.exists(directory):
+        abort(404)
+    with open(f"{directory}/depth.json", "r") as f:
+        stack_file = json.load(f)
+    return send_from_directory(f"{DATA_FOLDER}/{id}/thumbnails", stack_file['stacked'][image_id]['image'])
+    
 
 
 # send StackData
@@ -98,18 +109,18 @@ def images(id):
     to_jsonify = {}
 
     encoded_images = []
-    for image_id in stack_file["stacked"]:
-        image_data = stack_file["stacked"][image_id]["data"]
+    for image_label in stack_file["stacked"]:
+        image_data = stack_file["stacked"][image_label]["data"]
         try :
-            image_threshold = stack_file["stacked"][image_id]["edges"]["threshold"]
+            image_threshold = stack_file["stacked"][image_label]["edges"]["threshold"]
         except:
             image_threshold = None
 
         # file name of stacked image
         encoded_images.append(
             {
-                "id": image_id,
-                "label": stack_file["stacked"][image_id]["label"],
+                "id": image_label,
+                "label": image_label,
                 "size": {
                     "width": image_data["width"],
                     "height": image_data["height"],

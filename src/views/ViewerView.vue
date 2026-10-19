@@ -4,6 +4,7 @@ import { Separator } from "@/components/ui/separator";
 import { Sidebar } from "@/components/ui/sidebar";
 import { useSettingsStore, useImagesStore } from "@/lib/stores";
 import { CameraViewer } from "@/components/ui/camera-viewer"
+import { MainLogo } from "@/components/ui/logo";
 
 const settingsStore = useSettingsStore()
 
@@ -26,7 +27,13 @@ else{
 
 <template>
   <main class="h-screen">
-    <Menu class="sticky menu top-0 flex flex-row grow z-50"></Menu>
+    <div class="flex menu">
+      <Menu class="sticky top-0 flex flex-row grow z-50"></Menu> 
+      <div class="flex pr-2 items-center space-x-2">
+        <MainLogo :height=35 :width=35 />
+        <h1 class="font-dejavu font-bold text-brand">Depthoptica</h1>
+      </div>
+    </div>
     <Separator></Separator>
     <div class="h-full flex"
     :class="settingsStore.isLeft ? 'flex-row' : 'flex-row-reverse'">
@@ -43,7 +50,7 @@ else{
 
 <style scoped>
 .menu {
-  height: 60px;
+  height: 40px;
 }
 
 .sidebar {

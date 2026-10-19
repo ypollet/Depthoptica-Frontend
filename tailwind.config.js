@@ -13,6 +13,9 @@ module.exports = {
     './src/**/*.{ts,tsx,vue}',
 	],
   theme: {
+	fontFamily: {
+      'dejavu': ['"DejaVu Sans"', 'sans-serif'],
+    },
   	container: {
   		center: true,
   		padding: '2rem',
@@ -22,6 +25,7 @@ module.exports = {
   	},
   	extend: {
   		colors: {
+			brand: "hsl(var(--brand) / <alpha-value>)",
   			border: 'hsl(var(--border))',
   			input: 'hsl(var(--input))',
   			ring: 'hsl(var(--ring))',
