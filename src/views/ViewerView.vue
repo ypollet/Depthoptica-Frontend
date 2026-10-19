@@ -58,7 +58,7 @@ else{
 }
 
 .rest_height {
-  height: calc(100% - 61px);
+  height: calc(100% - 41px);
 }
 
 .rest_width {
