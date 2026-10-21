@@ -35,7 +35,7 @@ import { PhMouseLeftClick, PhMouseRightClick, PhMouseScroll } from '@phosphor-ic
                     </span>
                     <ul class="mt-1 list-[circle] pl-5 space-y-1">
                         <li>Click on empty space to add a landmark,</li>
-                        <li>Click on an existing point to delete it.</li>
+                        <li>Click on an existing landmark to delete it.</li>
                     </ul>
                 </li>
             </ul>

@@ -2,8 +2,7 @@
 import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 
-import disscoLogo from '@/assets/images/credits/dissco.svg'
-import belspoLogo from '@/assets/images/credits/belspo.jpg'
+import belspoLogo from '@/assets/images/credits/belspo.svg'
 import rbinsLogo from '@/assets/images/credits/rbins.svg'
 import africamuseumLogo from '@/assets/images/credits/africamuseum.svg'
 
@@ -30,8 +29,7 @@ const developers: Developer[] = [
 ]
 
 const projects: Organization[] = [
-  { name: 'BELSPO', invert: false, logo: belspoLogo, projects: ["DIGIT", "CANATHIST"] },
-  { name: 'DiSSCo', invert: false, logo: disscoLogo, projects: ["BeDiSSCoFED"] },
+  { name: 'BELSPO', invert: false, logo: belspoLogo, projects: ["DIGIT-04", "CANATHIST", "Be-DiSSCo FED"] },
 ]
 
 const institutions: Organization[] = [
@@ -75,7 +73,7 @@ const isDark = useDark({
 
       <!-- Projects & Institutions share the same logo + name layout -->
       <template v-for="(group, index) in [
-        { title: 'Projects', items: projects },
+        { title: 'Funding Projects', items: projects },
         { title: 'Institutions', items: institutions },
       ]" :key="group.title">
         <Separator v-if="index > 0" />
