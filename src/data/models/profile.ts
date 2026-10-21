@@ -92,6 +92,26 @@ export class Profile {
         this.landmarks = new Ends()
     }
 
+    permute() {
+        if(!this.landmarks.isFull()){
+            return
+        }
+        this.landmarks.permute()
+
+        const start = this.subLandmarkSegments[0]?.[0]
+        const lastSegment = this.subLandmarkSegments[this.subLandmarkSegments.length - 1]
+        const end = lastSegment?.[lastSegment.length - 1]
+        if (start == undefined || end == undefined) {
+            return
+        }
+        // Reversing the order alone draws the same curve: x (position along the profile)
+        // must also be mirrored, keeping the same range, so the old end becomes the new start
+        const offset = start.x + end.x
+        this.subLandmarkSegments = [...this.subLandmarkSegments].reverse().map((segment) =>
+            [...segment].reverse().map((point) => ({ ...point, x: offset - point.x }))
+        )
+    }
+
     popFirst() {
         this.landmarks.popFirst()
     }

@@ -28,7 +28,18 @@ function updateSelectedDist(payload: AcceptableValue) {
             <Select class="flex grow w-full" :model-value="selectedImage.store.selectedProfileIndex.toString()"
                 @update:model-value="updateSelectedDist">
                 <SelectTrigger class="w-full">
-                    <SelectValue placeholder="Pick a profile" />
+                    <!-- Rendered from the store: reka-ui caches each item's text at mount,
+                         so its own label goes stale when profiles are removed or renamed -->
+                    <SelectValue>
+                        <div class="flex flex-row space-x-2 items-center">
+                            <template v-if="selectedImage.store.selectedProfile">
+                                <span class="content-center">{{ selectedImage.store.selectedProfile.label }}</span>
+                            </template>
+                            <template v-else>
+                                <span class="content-center">New..</span>
+                            </template>
+                        </div>
+                    </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                     <SelectGroup>

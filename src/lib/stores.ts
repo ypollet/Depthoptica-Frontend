@@ -3,7 +3,7 @@ import { Distance } from '@/data/models/distance'
 import { Landmark } from '@/data/models/landmark'
 import Color from 'color'
 import { StackImage, type StackImageObject } from '@/data/models/stack_image'
-import {  Profile, type EndsObject } from '@/data/models/profile'
+import {  Profile } from '@/data/models/profile'
 import destr from "destr"
 import type { Coords3D } from '@/data/models/coordinates'
 

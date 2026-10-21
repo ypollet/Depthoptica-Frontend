@@ -32,6 +32,35 @@ export class Store {
         return (this.selectedProfileIndex >= 0 && this.selectedProfileIndex < this.profiles.length) ? this.profiles[this.selectedProfileIndex] as Profile : null
     }
 
+    // Remove a distance and keep selectedDistanceIndex pointing at the same distance
+    // (or -1 if it was the one removed), in the same tick as the splice.
+    removeDistance(index: number) {
+        if (index < 0 || index >= this.distances.length) {
+            return
+        }
+        if (index == this.selectedDistanceIndex) {
+            this.selectedDistanceIndex = -1
+        }
+        else if (index < this.selectedDistanceIndex) {
+            this.selectedDistanceIndex--
+        }
+        this.distances.splice(index, 1)
+    }
+
+    // Same as removeDistance, for profiles
+    removeProfile(index: number) {
+        if (index < 0 || index >= this.profiles.length) {
+            return
+        }
+        if (index == this.selectedProfileIndex) {
+            this.selectedProfileIndex = -1
+        }
+        else if (index < this.selectedProfileIndex) {
+            this.selectedProfileIndex--
+        }
+        this.profiles.splice(index, 1)
+    }
+
     updateStore(other: Store) {
         other.landmarks.forEach((new_landmark) => {
             if (!this.checkUniqueID(new_landmark.id)) {

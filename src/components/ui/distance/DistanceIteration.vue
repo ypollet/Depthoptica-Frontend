@@ -16,8 +16,8 @@ import { PhX, PhEraser, PhEye, PhEyeClosed } from "@phosphor-icons/vue";
 import { Distance } from "@/data/models/distance";
 import { storeToRefs } from "pinia";
 import SelectScale from "../select-scale/SelectScale.vue";
+import LandmarkIteration from "../landmark/LandmarkIteration.vue";
 import { computeDistance, ROUNDING, Scale } from "@/lib/utils";
-import type { Coordinates } from "@/data/models/coordinates";
 
 const props = defineProps({
     distance: {
@@ -54,12 +54,29 @@ function changeColor(event: Event) {
 function removeLandmark(id: string) {
     props.distance.remove(id)
     if (props.distance.landmarks.length == 0) {
-        selectedImage.value.store.distances.splice(props.index, 1)
+        selectedImage.value.store.removeDistance(props.index)
     }
 }
 
-function changeLabelLandmark(payload: string | number, landmark: Landmark) {
-    landmark.setLabel(payload.toString())
+// Reorder the landmarks live while dragging. Sortable's own DOM move is cancelled
+// (return false) so Vue is the only one moving the elements.
+function onMoveLandmark(evt: any) {
+    const landmarks = props.distance.landmarks
+    const from = landmarks.indexOf(evt.draggedContext.element)
+    const to = evt.draggedContext.futureIndex
+    if (from !== -1 && from !== to && to < landmarks.length) {
+        landmarks.splice(to, 0, landmarks.splice(from, 1)[0]!)
+    }
+    return false
+}
+
+// On drop, vuedraggable puts the dragged element back at its original DOM index
+// (its model update is ignored, the list is already in order): put it back at
+// evt.newIndex, where Vue had rendered it.
+function onEndDrag(evt: any) {
+    scrollSnapType.value = true
+    evt.item.remove()
+    evt.from.insertBefore(evt.item, evt.from.children[evt.newIndex] ?? null)
 }
 
 function changeLabelDistance(payload: string | number) {
@@ -67,10 +84,7 @@ function changeLabelDistance(payload: string | number) {
 }
 
 function deleteDistance() {
-    if (props.index <= selectedImage.value.store.selectedDistanceIndex) {
-        selectedImage.value.store.selectedDistanceIndex--;
-    }
-    selectedImage.value.store.distances.splice(props.index, 1)
+    selectedImage.value.store.removeDistance(props.index)
 }
 
 function showInput(e : MouseEvent) {
@@ -136,39 +150,13 @@ function scaleVector(pose : Pose){
         </div>
         <div v-if="showLandmarks" ref="landmarksScroll" class="overflow-auto min-h-16 max-h-96 w-full border"
             :class="{ 'scroll-snap-type': scrollSnapType }">
-            <draggable ref="landmarksElements" v-model="distance.landmarks"
-                :group="distance.label + '_landmarks_' + index" item-key="id" :force-fallback="true" :animation="150"
+            <draggable ref="landmarksElements" :model-value="distance.landmarks" :move="onMoveLandmark"
+                :group="distance.label + '_landmarks_' + index" item-key="id" :force-fallback="true"
                 :scroll="true" :bubbleScroll="true" :handle="'.handle'" class="relative w-fit min-w-full"
-                @start="scrollSnapType = false" @end="scrollSnapType = true">
+                @start="scrollSnapType = false" @end="onEndDrag">
                 <template #item="{ element: landmark }: { element: Landmark }">
-                    <div class="scroll-align border flex grow p-2">
-                        <div class="h-12 flex grow row justify-between items-center font-normal px-3 py-2">
-                            <div class="flex items-center justify-start w-full space-x-3 py-3 mr-3">
-                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor"
-                                    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                                    xmlns="http://www.w3.org/2000/svg" class="mr-2 h-6 w-6 handle">
-                                    <path
-                                        d="M7.49985 0.877045C3.84216 0.877045 0.877014 3.84219 0.877014 7.49988C0.877014 11.1575 3.84216 14.1227 7.49985 14.1227C11.1575 14.1227 14.1227 11.1575 14.1227 7.49988C14.1227 3.84219 11.1575 0.877045 7.49985 0.877045ZM1.82701 7.49988C1.82701 4.36686 4.36683 1.82704 7.49985 1.82704C10.6328 1.82704 13.1727 4.36686 13.1727 7.49988C13.1727 10.6329 10.6328 13.1727 7.49985 13.1727C4.36683 13.1727 1.82701 10.6329 1.82701 7.49988ZM7.49999 9.49999C8.60456 9.49999 9.49999 8.60456 9.49999 7.49999C9.49999 6.39542 8.60456 5.49999 7.49999 5.49999C6.39542 5.49999 5.49999 6.39542 5.49999 7.49999C5.49999 8.60456 6.39542 9.49999 7.49999 9.49999Z"
-                                        fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"></path>
-                                </svg>
-                                <Label v-show="!landmark.getEdit()" class="whitespace-nowrap"
-                                    @dblclick.stop="landmark.setEdit(true)">{{ landmark.label }}</Label>
-                                <Input v-show="landmark.getEdit()" @dblclick.stop="" type="text"
-                                    :model-value="landmark.label" class="h-auto" @focusout="landmark.setEdit(false)"
-                                    @keyup.enter="landmark.setEdit(false)"
-                                    @update:model-value="changeLabelLandmark($event, landmark)" />
-                            </div>
-                            <div class="flex items-center h-full w-auto justify-end space-x-3 pr-3">
-                                <Label class="whitespace-nowrap">{{ landmark.show_pose }}</Label>
-                            </div>
-                            <div class="flex items-center justify-end space-x-3">
-                                <Button class="relative w-6 h-6 p-0" variant="destructive"
-                                    @click="removeLandmark(landmark.id)">
-                                    <PhX class="relative w-4 h-4 p-0" />
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
+                    <LandmarkIteration :landmark="landmark" :color-picker="false" :visibility-toggle="false"
+                        @remove="removeLandmark" />
                 </template>
             </draggable>
         </div>

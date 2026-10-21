@@ -24,6 +24,10 @@ export class Deque<T> {
         return this._array[this._array.length-1];
     }
 
+    permute(){
+        this._array = this._array.reverse()
+    }
+
     forEach(callback : (a : T) => void) {
         this._array.forEach((item) => callback(item))
     }

@@ -33,13 +33,12 @@ import { Landmark } from '@/data/models/landmark'
 import { useToggle, useDark } from '@vueuse/core'
 import { useSettingsStore, useImagesStore, type LandmarkInfo } from '@/lib/stores'
 import saveAs from 'file-saver';
-import { storeToRefs } from 'pinia'
 import { ref } from 'vue'
 import { Store, type StackImage } from '@/data/models/stack_image'
+import { Credits } from './ui/credits'
 
 const settingsStore = useSettingsStore()
 const imagesStore = useImagesStore()
-const { selectedImage } = storeToRefs(imagesStore)
 
 
 const isDark = useDark({
@@ -139,6 +138,9 @@ const setIsImportDialogOpen = useToggle(isImportDialogOpen)
 const isHelpGuideDialogOpen = ref<boolean>(false)
 const setIsHelpGuideDialogOpen = useToggle(isHelpGuideDialogOpen)
 
+const isCreditsDialogOpen = ref<boolean>(false)
+const setCreditsDialogOpen = useToggle(isCreditsDialogOpen)
+
 </script>
 
 <template>
@@ -202,6 +204,9 @@ const setIsHelpGuideDialogOpen = useToggle(isHelpGuideDialogOpen)
           <MenubarItem inset @select="setIsHelpGuideDialogOpen(true)">
             How to use ?
           </MenubarItem>
+          <MenubarItem inset @select="setCreditsDialogOpen(true)">
+            Credits
+          </MenubarItem>
         </MenubarContent>
       </MenubarMenu>
     </Menubar>
@@ -225,7 +230,7 @@ const setIsHelpGuideDialogOpen = useToggle(isHelpGuideDialogOpen)
       </DialogContent>
     </Dialog>
 
-    <!-- Hel Guide Dialog -->
+    <!-- Help Guide Dialog -->
     <Dialog :open="isHelpGuideDialogOpen" @update:open="setIsHelpGuideDialogOpen">
       <DialogContent class="flex h-[85vh] w-[50vw] max-w-none flex-col overflow-hidden">
         <DialogHeader class="shrink-0">
@@ -236,6 +241,21 @@ const setIsHelpGuideDialogOpen = useToggle(isHelpGuideDialogOpen)
         </DialogHeader>
         <div id="div-carousel" class="min-h-0 h-full w-full flex-1 overflow-y-auto overflow-x-hidden">
           <HelpGuide />
+        </div>
+      </DialogContent>
+    </Dialog>
+
+    <!-- Credits Dialog -->
+    <Dialog :open="isCreditsDialogOpen" @update:open="setCreditsDialogOpen">
+      <DialogContent class="flex h-[85vh] w-[50vw] max-w-none flex-col overflow-hidden">
+        <DialogHeader class="shrink-0">
+          <DialogTitle>Credits</DialogTitle>
+          <DialogDescription>
+            Thank to everyone that contributed to this project
+          </DialogDescription>
+        </DialogHeader>
+        <div class="min-h-0 h-full w-full flex-1 overflow-y-auto overflow-x-hidden">
+          <Credits />
         </div>
       </DialogContent>
     </Dialog>
